@@ -6,6 +6,7 @@ import {
   isValidSliderAnswerMessage,
   isValidConfigureLobbyMessage,
   isValidTTSRequestMessage,
+  isValidPlayerReadyMessage,
   type SyncMessage,
   type PlayerAnsweredMessage,
   type PhaseChangeMessage,
@@ -359,7 +360,7 @@ export default class GameServer implements Party.Server {
       }
 
       // Handle player ready for results
-      if (payload.type === "PLAYER_READY") {
+      if (isValidPlayerReadyMessage(payload)) {
         if (this.phase === GamePhase.RESULTS) {
           this.resultsReadyPlayers.add(sender.id);
           this.broadcastReadyStatus();
@@ -516,6 +517,11 @@ export default class GameServer implements Party.Server {
     // Remove this user from other users' reveal request sets
     for (const requests of this.revealRequests.values()) {
       requests.delete(connection.id);
+    }
+    // Remove from ready players if in RESULTS phase
+    const wasReady = this.resultsReadyPlayers.delete(connection.id);
+    if (wasReady && this.phase === GamePhase.RESULTS) {
+      this.broadcastReadyStatus();
     }
     this.room.broadcast(JSON.stringify({ type: "leave", id: connection.id }));
 
@@ -845,5 +851,14 @@ export default class GameServer implements Party.Server {
       readyUserIds: Array.from(this.resultsReadyPlayers),
     };
     this.room.broadcast(JSON.stringify(readyMsg));
+    
+    // Auto-advance when 75% ready
+    const readyPercentage = this.users.size > 0 
+      ? (this.resultsReadyPlayers.size / this.users.size) * 100 
+      : 0;
+    
+    if (readyPercentage >= 75 && this.phase === GamePhase.RESULTS) {
+      this.transitionToReveal();
+    }
   }
 }

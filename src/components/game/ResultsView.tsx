@@ -7,7 +7,6 @@ import { TTSToggle } from "@/components/game/TTSToggle";
 type ResultsViewProps = {
   matches: CompatibilityScore[];
   narrativeInsights: string[];
-  onContinue: () => void;
   ttsEnabled: boolean;
   ttsState: "idle" | "loading" | "playing" | "error";
   onTTSToggle: () => void;
@@ -26,7 +25,6 @@ const INSIGHT_PAUSE_MS = 1000; // Pause between insights in milliseconds
 export function ResultsView({ 
   matches, 
   narrativeInsights, 
-  onContinue,
   ttsEnabled,
   ttsState,
   onTTSToggle,
@@ -245,24 +243,17 @@ export function ResultsView({
 
       {/* Button */}
       <div className="p-6 pt-4 flex-shrink-0 w-full border-t border-border">
-        {(() => {
-          const readyPercentage = totalPlayers > 0 ? (readyCount / totalPlayers) * 100 : 0;
-          const canContinue = readyPercentage >= 75;
-          
-          return (
-            <Button 
-              onClick={isCurrentUserReady ? onContinue : onPlayerReady} 
-              className="w-full" 
-              size="lg"
-              disabled={!canContinue && isCurrentUserReady}
-            >
-              {isCurrentUserReady 
-                ? `Waiting for others (${readyCount}/${totalPlayers} ready)`
-                : "Ready to Continue"
-              }
-            </Button>
-          );
-        })()}
+        <Button 
+          onClick={onPlayerReady} 
+          className="w-full" 
+          size="lg"
+          disabled={isCurrentUserReady}
+        >
+          {isCurrentUserReady 
+            ? `Waiting for others (${readyCount}/${totalPlayers} ready)`
+            : "Ready to Continue"
+          }
+        </Button>
       </div>
     </div>
   );

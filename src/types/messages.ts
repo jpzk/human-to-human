@@ -274,3 +274,9 @@ export function isValidTTSRequestMessage(msg: unknown): msg is TTSRequestMessage
     m.requestId.length <= MAX_ID_LENGTH
   );
 }
+
+export function isValidPlayerReadyMessage(msg: unknown): msg is PlayerReadyMessage {
+  if (typeof msg !== "object" || msg === null) return false;
+  const m = msg as Record<string, unknown>;
+  return m.type === "PLAYER_READY";
+}

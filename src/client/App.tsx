@@ -275,6 +275,11 @@ export default function App() {
     setTtsEnabled(!ttsEnabled);
   }, [ttsEnabled, ttsStop]);
 
+  // Memoize TTS stop callback to prevent unnecessary re-renders
+  const handleTTSStop = useCallback(() => {
+    ttsStop();
+  }, [ttsStop]);
+
   // Handle player ready for results
   const handlePlayerReady = useCallback(() => {
     if (!isCurrentUserReady && sendMessage) {
@@ -347,12 +352,11 @@ export default function App() {
             <ResultsView 
               matches={results} 
               narrativeInsights={narrativeInsights} 
-              onContinue={handleContinueToReveal}
               ttsEnabled={ttsEnabled}
               ttsState={ttsState}
               onTTSToggle={handleTTSToggle}
               onTTSSpeak={ttsSpeak}
-              onTTSStop={ttsStop}
+              onTTSStop={handleTTSStop}
               readyCount={resultsReadyCount}
               totalPlayers={resultsTotalPlayers}
               isCurrentUserReady={isCurrentUserReady}
