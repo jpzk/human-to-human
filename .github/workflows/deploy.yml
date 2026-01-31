@@ -11,20 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Copy files to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: 159.69.188.230
-          username: root
-          key: ${{ secrets.SSH_KEY }}
-          source: "."
-          target: "/root/h2h"
-          rm: true
-
-      - name: Build and deploy
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: 159.69.188.230
@@ -32,6 +19,18 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -e
+            
+            # Clone or pull the repository
+            if [ -d "/root/h2h/.git" ]; then
+              cd /root/h2h
+              git fetch origin
+              git reset --hard origin/main
+              git clean -fd
+            else
+              mkdir -p /root/h2h
+              git clone git@github.com:jpzk/human-to-human.git /root/h2h
+            fi
+            
             cd /root/h2h
             
             # Stop existing container
