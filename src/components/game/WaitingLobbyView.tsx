@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
+// import { QRCodeSVG } from "qrcode.react"; // Commented out for future use
 import { Button } from "@/components/ui/button";
 import type { LobbyConfig } from "@/types/game";
 
@@ -46,7 +46,7 @@ export function WaitingLobbyView({
             <div className="text-center md:text-left space-y-2">
               <h1 className="text-4xl font-bold">Waiting for Players</h1>
               <p className="text-muted-foreground">
-                Share the link or QR code to invite others
+                Share the link to invite others
               </p>
             </div>
 
@@ -103,11 +103,13 @@ export function WaitingLobbyView({
             </Button>
           </div>
 
-          {/* Right side: QR Code and Share Link */}
+          {/* Right side: Share Link */}
           <div className="flex flex-col items-center justify-center space-y-6">
+            {/* QR Code - Commented out for future use
             <div className="p-6 bg-white rounded-lg border border-border">
               <QRCodeSVG value={roomLink} size={200} />
             </div>
+            */}
 
             <div className="w-full space-y-3">
               <div className="flex gap-2">
@@ -126,7 +128,7 @@ export function WaitingLobbyView({
                 </Button>
               </div>
               <p className="text-xs text-center text-muted-foreground">
-                Scan the QR code or share the link to invite players
+                Share the link to invite players
               </p>
             </div>
           </div>
