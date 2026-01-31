@@ -8,6 +8,8 @@ services:
     restart: unless-stopped
     expose:
       - "1999"
+    env_file:
+      - .env
     environment:
       - NODE_ENV=production
     labels:
