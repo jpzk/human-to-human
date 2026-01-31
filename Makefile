@@ -2,7 +2,7 @@
 # Docker Development Commands
 # ============================================
 
-.PHONY: build up down restart logs shell clean prune
+.PHONY: build up down restart logs shell clean prune production
 
 # Build the Docker image
 build:
@@ -52,3 +52,26 @@ npm:
 # Prevent make from treating arguments as targets
 %:
 	@:
+
+# ============================================
+# Production Deployment (run on server)
+# ============================================
+
+# Deploy to production (run this on the production server)
+production:
+	git config --global --add safe.directory /root/h2h
+	@if [ -d "/root/h2h/.git" ]; then \
+		cd /root/h2h && \
+		git fetch origin && \
+		git reset --hard origin/main && \
+		git clean -fd; \
+	else \
+		mkdir -p /root/h2h && \
+		git clone git@github.com:jpzk/human-to-human.git /root/h2h; \
+	fi
+	cd /root/h2h && \
+	docker compose -f docker-compose.prod.yml down || true && \
+	docker compose -f docker-compose.prod.yml build --no-cache && \
+	docker compose -f docker-compose.prod.yml up -d && \
+	docker image prune -f
+	@echo "Deployment complete!"
