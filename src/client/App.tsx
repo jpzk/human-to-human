@@ -473,6 +473,13 @@ export default function App() {
                           height="32"
                           viewBox="0 0 24 24"
                         >
+                          {/* Background layer - blocks content */}
+                          <path
+                            fill="hsl(var(--flexoki-bg))"
+                            stroke="none"
+                            d={CURSOR_PATH}
+                          />
+                          {/* Foreground layer - colored outline */}
                           <path
                             fill="none"
                             stroke={u.color}
@@ -516,6 +523,13 @@ export default function App() {
               height="32"
               viewBox="0 0 24 24"
             >
+              {/* Background layer - blocks content */}
+              <path
+                fill="hsl(var(--flexoki-bg))"
+                stroke="none"
+                d={CURSOR_PATH}
+              />
+              {/* Foreground layer - colored outline */}
               <path
                 fill="none"
                 stroke={myColor}
