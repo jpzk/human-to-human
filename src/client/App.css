@@ -67,6 +67,16 @@
   color: var(--color, hsl(var(--flexoki-tx)));
 }
 
+.local-cursor-wrapper {
+  position: fixed;
+  /* Match remote cursor hotspot offset */
+  transform-origin: 4px 4px;
+  transform: translate(-4px, -4px);
+  pointer-events: none;
+  z-index: 1000;
+  transition: transform 0.05s linear;
+}
+
 .status-bar {
   position: fixed;
   bottom: 12px;

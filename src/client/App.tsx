@@ -42,6 +42,7 @@ function clamp(n: number, lo: number, hi: number) {
 export default function App() {
   const [scale, setScale] = useState(1);
   const [isClicking, setIsClicking] = useState(false);
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const lastSendRef = useRef(0);
   const THROTTLE_MS = 1000 / 30; // 30 FPS cursor updates
@@ -142,7 +143,8 @@ export default function App() {
   const myColor = myId ? users[myId]?.color : null;
   const isHost = myId !== null && myId === hostId;
   const cursorSize = isClicking ? CURSOR_SIZE_CLICKED : CURSOR_SIZE_DEFAULT;
-  const cursorStyle = myColor ? { cursor: cursorDataUrl(myColor, cursorSize) } : undefined;
+  // Hide native cursor when we have our own cursor component
+  const cursorStyle = myColor && myName ? { cursor: "none" } : undefined;
 
   const handleAnswer = (questionId: string, answerId: string) => {
     sendMessage({ type: "ANSWER", questionId, answerId });
@@ -273,9 +275,11 @@ export default function App() {
     const onMove = (e: MouseEvent) => {
       const el = viewportRef.current;
       if (!el || status !== "connected") return;
-      const now = Date.now();
-      if (now - lastSendRef.current < THROTTLE_MS) return;
-      lastSendRef.current = now;
+      
+      // Update local position state immediately for smooth rendering (screen coordinates)
+      setMousePosition({ x: e.clientX, y: e.clientY });
+      
+      // Calculate viewport coordinates for server updates
       const rect = el.getBoundingClientRect();
       const x = clamp(
         ((e.clientX - rect.left) / rect.width) * VIEWPORT_W,
@@ -287,6 +291,11 @@ export default function App() {
         0,
         VIEWPORT_H
       );
+      
+      // Throttle server updates to 30 FPS
+      const now = Date.now();
+      if (now - lastSendRef.current < THROTTLE_MS) return;
+      lastSendRef.current = now;
       sendMessage({ type: "cursor", x, y });
     };
     document.addEventListener("mousemove", onMove);
@@ -482,6 +491,46 @@ export default function App() {
           </div>
         </div>
       </div>
+      
+      {/* Local player cursor - rendered like remote cursors for consistency */}
+      {!currentQuestion?.hideCursors && 
+        myName && 
+        myColor && 
+        mousePosition && (
+        <div
+          className="local-cursor-wrapper"
+          style={{
+            left: mousePosition.x,
+            top: mousePosition.y,
+          }}
+        >
+          <div
+            className="cursor"
+            style={{
+              "--color": myColor,
+              "--velocity": 0,
+              transform: isClicking ? "scale(0.85)" : "scale(1)",
+            } as React.CSSProperties}
+          >
+            <svg
+              className="cursor-icon"
+              xmlns="http://www.w3.org/2000/svg"
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+            >
+              <path
+                fill="none"
+                stroke={myColor}
+                strokeWidth={2}
+                strokeLinejoin="round"
+                d={CURSOR_PATH}
+              />
+            </svg>
+            <span className="cursor-name">{myName}</span>
+          </div>
+        </div>
+      )}
       
       {/* Show nudge notification as fixed top-center banner */}
       {myId && users[myId]?.nudgeNotification && (
