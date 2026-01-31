@@ -4,6 +4,7 @@ import { ResultsView } from "@/components/game/ResultsView";
 import { RevealView } from "@/components/game/RevealView";
 import { CreateLobbyView } from "@/components/game/CreateLobbyView";
 import { WaitingLobbyView } from "@/components/game/WaitingLobbyView";
+import { TTSToggle } from "@/components/game/TTSToggle";
 import { GamePhase } from "@/types/game";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useGameState } from "@/hooks/useGameState";
@@ -48,6 +49,9 @@ export default function App() {
 
   // Store pending lobby config when creating a new lobby
   const [pendingLobbyConfig, setPendingLobbyConfig] = useState<{ deck: string } | null>(null);
+
+  // TTS enabled state (default ON)
+  const [ttsEnabled, setTtsEnabled] = useState(true);
 
   // Use custom hooks for game state and WebSocket (only connect if roomId exists)
   const gameState = useGameState();
@@ -226,6 +230,21 @@ export default function App() {
     };
   }, []);
 
+  // Auto-speak when question changes and TTS is enabled
+  useEffect(() => {
+    if (ttsEnabled && currentQuestion && phase === GamePhase.ANSWERING) {
+      ttsSpeak(currentQuestion.text);
+    }
+  }, [currentQuestion?.id, ttsEnabled, phase, ttsSpeak]);
+
+  // Toggle handler
+  const handleTTSToggle = useCallback(() => {
+    if (ttsEnabled) {
+      ttsStop(); // Stop current playback when disabling
+    }
+    setTtsEnabled(!ttsEnabled);
+  }, [ttsEnabled, ttsStop]);
+
   // If no roomId in URL, show create lobby view
   if (!roomId) {
     return (
@@ -266,20 +285,24 @@ export default function App() {
             />
           )}
           {phase === GamePhase.ANSWERING && (
-            <AnsweringView
-              currentQuestion={currentQuestion}
-              currentQuestionIndex={currentQuestionIndex}
-              questions={questions}
-              totalPlayers={totalPlayers}
-              answeredBy={answeredBy}
-              myId={myId}
-              myName={myName}
-              onAnswer={handleAnswer}
-              onSliderAnswer={handleSliderAnswer}
-              ttsState={ttsState}
-              ttsSpeak={ttsSpeak}
-              ttsStop={ttsStop}
-            />
+            <>
+              <TTSToggle
+                enabled={ttsEnabled}
+                ttsState={ttsState}
+                onToggle={handleTTSToggle}
+              />
+              <AnsweringView
+                currentQuestion={currentQuestion}
+                currentQuestionIndex={currentQuestionIndex}
+                questions={questions}
+                totalPlayers={totalPlayers}
+                answeredBy={answeredBy}
+                myId={myId}
+                myName={myName}
+                onAnswer={handleAnswer}
+                onSliderAnswer={handleSliderAnswer}
+              />
+            </>
           )}
           {phase === GamePhase.RESULTS && (
             <ResultsView matches={results} onContinue={handleContinueToReveal} />

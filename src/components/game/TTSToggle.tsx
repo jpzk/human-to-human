@@ -1,10 +1,9 @@
 import { Button } from "@/components/ui/button";
 
-type SpeakButtonProps = {
-  text: string;
-  state: "idle" | "loading" | "playing" | "error";
-  onSpeak: () => void;
-  onStop: () => void;
+type TTSToggleProps = {
+  enabled: boolean;
+  ttsState: "idle" | "loading" | "playing" | "error";
+  onToggle: () => void;
 };
 
 // Speaker icon SVG
@@ -24,8 +23,8 @@ const SpeakerIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// Stop icon SVG
-const StopIcon = ({ className }: { className?: string }) => (
+// Muted speaker icon SVG
+const MutedSpeakerIcon = ({ className }: { className?: string }) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
@@ -36,7 +35,9 @@ const StopIcon = ({ className }: { className?: string }) => (
     strokeLinejoin="round"
     className={className}
   >
-    <rect x="6" y="6" width="12" height="12" rx="2" />
+    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+    <line x1="23" y1="9" x2="17" y2="15" />
+    <line x1="17" y1="9" x2="23" y2="15" />
   </svg>
 );
 
@@ -56,30 +57,25 @@ const LoadingSpinner = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export function SpeakButton({ state, onSpeak, onStop }: SpeakButtonProps) {
-  const handleClick = () => {
-    if (state === "playing") {
-      onStop();
-    } else {
-      onSpeak();
-    }
-  };
+export function TTSToggle({ enabled, ttsState, onToggle }: TTSToggleProps) {
+  const isLoading = ttsState === "loading";
+  const isPlaying = ttsState === "playing";
 
   return (
     <Button
       variant="ghost"
       size="icon"
-      onClick={handleClick}
-      aria-label={state === "playing" ? "Stop reading" : state === "loading" ? "Loading audio" : "Read aloud"}
-      className="h-8 w-8"
-      disabled={state === "loading"}
-      title={state === "playing" ? "Stop reading" : "Read aloud"}
+      onClick={onToggle}
+      aria-label={enabled ? "Disable text-to-speech" : "Enable text-to-speech"}
+      className="absolute top-4 right-4 h-10 w-10 z-20"
+      disabled={isLoading}
+      title={enabled ? "Disable text-to-speech" : "Enable text-to-speech"}
     >
-      {state === "loading" && (
-        <LoadingSpinner className="h-4 w-4 animate-spin" />
+      {isLoading && <LoadingSpinner className="h-5 w-5 animate-spin" />}
+      {!isLoading && enabled && (
+        <SpeakerIcon className={`h-5 w-5 ${isPlaying ? "animate-pulse" : ""}`} />
       )}
-      {state === "playing" && <StopIcon className="h-4 w-4" />}
-      {(state === "idle" || state === "error") && <SpeakerIcon className="h-4 w-4" />}
+      {!isLoading && !enabled && <MutedSpeakerIcon className="h-5 w-5" />}
     </Button>
   );
 }

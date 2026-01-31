@@ -14,9 +14,6 @@ type AnsweringViewProps = {
   myName: string | null;
   onAnswer: (questionId: string, answerId: string) => void;
   onSliderAnswer: (questionId: string, value: number) => void;
-  ttsState: "idle" | "loading" | "playing" | "error";
-  ttsSpeak: (text: string) => void;
-  ttsStop: () => void;
 };
 
 export function AnsweringView({
@@ -29,9 +26,6 @@ export function AnsweringView({
   myName,
   onAnswer,
   onSliderAnswer,
-  ttsState,
-  ttsSpeak,
-  ttsStop,
 }: AnsweringViewProps) {
   if (!currentQuestion) return null;
   
@@ -82,9 +76,6 @@ export function AnsweringView({
           question={currentQuestion}
           onAnswer={onAnswer}
           hasAnswered={hasAnswered}
-          ttsState={ttsState}
-          ttsSpeak={ttsSpeak}
-          ttsStop={ttsStop}
         />
       ) : currentQuestion.type === QuestionType.SLIDER ? (
         <SliderQuestionCard
@@ -92,9 +83,6 @@ export function AnsweringView({
           question={currentQuestion}
           onAnswer={onSliderAnswer}
           hasAnswered={hasAnswered}
-          ttsState={ttsState}
-          ttsSpeak={ttsSpeak}
-          ttsStop={ttsStop}
         />
       ) : null}
     </>
