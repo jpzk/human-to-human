@@ -5,7 +5,6 @@ import { RevealView } from "@/components/game/RevealView";
 import { CreateLobbyView } from "@/components/game/CreateLobbyView";
 import { WaitingLobbyView } from "@/components/game/WaitingLobbyView";
 import { TTSToggle } from "@/components/game/TTSToggle";
-import { HiddenCursorOverlay } from "@/components/game/HiddenCursorOverlay";
 import { NudgeNotification } from "@/components/game/NudgeNotification";
 import { RevealRequestNotification } from "@/components/game/RevealRequestNotification";
 import { ChatModal } from "@/components/game/ChatModal";
@@ -400,7 +399,6 @@ export default function App() {
                 ttsState={ttsState}
                 onToggle={handleTTSToggle}
               />
-              <HiddenCursorOverlay isHidden={currentQuestion?.hideCursors ?? false} />
               <AnsweringView
                 currentQuestion={currentQuestion}
                 currentQuestionIndex={currentQuestionIndex}
@@ -439,63 +437,61 @@ export default function App() {
             />
           )}
           <div className="cursors" aria-hidden>
-            {!currentQuestion?.hideCursors &&
-              Object.entries(users)
-                .filter(([id]) => id !== myId)
-                .map(
-                  ([id, u]) =>
-                    u.x != null &&
-                    u.y != null && (
+            {Object.entries(users)
+              .filter(([id]) => id !== myId)
+              .map(
+                ([id, u]) =>
+                  u.x != null &&
+                  u.y != null && (
+                    <div
+                      key={id}
+                      className="cursor-wrapper clickable"
+                      style={{
+                        left: u.x,
+                        top: u.y,
+                      } as React.CSSProperties}
+                      onClick={() => handleNudge(id)}
+                      title={
+                        (nudgeCooldowns[id] ?? 0) > Date.now()
+                          ? "Wait before nudging again"
+                          : `Click to nudge ${u.name}`
+                      }
+                    >
                       <div
-                        key={id}
-                        className="cursor-wrapper clickable"
-                        style={{
-                          left: u.x,
-                          top: u.y,
-                        } as React.CSSProperties}
-                        onClick={() => handleNudge(id)}
-                        title={
-                          (nudgeCooldowns[id] ?? 0) > Date.now()
-                            ? "Wait before nudging again"
-                            : `Click to nudge ${u.name}`
+                        className={`cursor ${(nudgeCooldowns[id] ?? 0) > Date.now() ? 'on-cooldown' : ''}`}
+                        style={
+                          {
+                            "--color": u.color,
+                            "--velocity": u.velocity,
+                          } as React.CSSProperties
                         }
                       >
-                        <div
-                          className={`cursor ${(nudgeCooldowns[id] ?? 0) > Date.now() ? 'on-cooldown' : ''}`}
-                          style={
-                            {
-                              "--color": u.color,
-                              "--velocity": u.velocity,
-                            } as React.CSSProperties
-                          }
+                        <svg
+                          className="cursor-icon"
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="32"
+                          height="32"
+                          viewBox="0 0 24 24"
                         >
-                          <svg
-                            className="cursor-icon"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="32"
-                            height="32"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              fill="none"
-                              stroke={u.color}
-                              strokeWidth={2}
-                              strokeLinejoin="round"
-                              d={CURSOR_PATH}
-                            />
-                          </svg>
-                          <span className="cursor-name">{u.name}</span>
-                        </div>
+                          <path
+                            fill="none"
+                            stroke={u.color}
+                            strokeWidth={2}
+                            strokeLinejoin="round"
+                            d={CURSOR_PATH}
+                          />
+                        </svg>
+                        <span className="cursor-name">{u.name}</span>
                       </div>
-                    )
-                )}
+                    </div>
+                  )
+              )}
           </div>
         </div>
       </div>
       
       {/* Local player cursor - rendered like remote cursors for consistency */}
-      {!currentQuestion?.hideCursors && 
-        myName && 
+      {myName && 
         myColor && 
         mousePosition && (
         <div

@@ -21,7 +21,6 @@ export type SliderConfig = {
 type BaseQuestion = {
   id: string;
   text: string;
-  hideCursors?: boolean;
 };
 
 // Multiple choice question with discrete answer options

@@ -3,7 +3,6 @@ export interface ButtonCard {
   question: string;
   type: "buttons";
   answers: [string, string, string, string];
-  hideCursors?: boolean;
 }
 
 export interface SliderCard {
@@ -11,7 +10,6 @@ export interface SliderCard {
   question: string;
   type: "slider";
   answers: [string, string] | [string, string, string, string, string];
-  hideCursors?: boolean;
 }
 
 export type Card = ButtonCard | SliderCard;
@@ -63,7 +61,6 @@ const decks: Deck[] = [
         card_name: "fear",
         question: "What are you most scared of?",
         type: "buttons",
-        hideCursors: true,
         answers: [
           "Public speaking",
           "Asking someone for a date",

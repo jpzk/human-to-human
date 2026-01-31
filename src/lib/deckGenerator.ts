@@ -46,7 +46,6 @@ Rules:
   * Questions 1-3: Light, casual, easy to answer (hobbies, preferences, daily life)
   * Questions 4-7: Medium depth (values, dreams, aspirations, relationships)
   * Questions 8-10: Deep and vulnerable (fears, regrets, emotional truths, personal struggles)
-- The last 2-3 questions should optionally include "hideCursors": true for privacy on sensitive questions
 
 Return ONLY valid JSON, no markdown or explanation.`;
 

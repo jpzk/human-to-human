@@ -10,7 +10,6 @@ function cardToQuestion(card: Card): Question {
   const baseQuestion = {
     id: card.card_name,
     text: card.question,
-    hideCursors: card.hideCursors,
   };
 
   if (card.type === "buttons") {
