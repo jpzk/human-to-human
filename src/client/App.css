@@ -130,3 +130,37 @@
 .nudge-banner-content span {
   font-weight: 700;
 }
+
+/* Reveal request notification banner */
+.reveal-request-banner {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100px);
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.reveal-request-banner.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+.reveal-request-banner-content {
+  background: hsl(var(--flexoki-bg));
+  border: 1px solid hsl(var(--flexoki-ui-3));
+  border-radius: 12px;
+  padding: 16px 32px;
+  font-size: 18px;
+  color: hsl(var(--foreground));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+}
+
+/* Removed: font-weight is now handled inline for the name span only */

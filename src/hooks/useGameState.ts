@@ -13,6 +13,10 @@ import type {
   NarrativeMessage,
   NudgeStatusMessage,
   NudgeReceivedMessage,
+  RevealRequestNotificationMessage,
+  ChatStartedMessage,
+  ChatMessageReceive,
+  ChatClosedMessage,
 } from "@/types/messages";
 
 type User = { 
@@ -61,6 +65,9 @@ export function useGameState() {
   const [isGeneratingDeck, setIsGeneratingDeck] = useState(false);
   const [narrativeInsights, setNarrativeInsights] = useState<string[]>([]);
   const [nudgeCooldowns, setNudgeCooldowns] = useState<Record<string, number>>({});
+  const [revealNotifications, setRevealNotifications] = useState<Map<string, { requesterId: string; requesterName: string; requesterColor: string }>>(new Map());
+  const [activeChat, setActiveChat] = useState<{ chatId: string; partnerId: string; partnerName: string; partnerColor: string } | null>(null);
+  const [chatMessages, setChatMessages] = useState<Array<{ fromId: string; fromName: string; text: string; timestamp: number; isOwn: boolean }>>([]);
   const myIdRef = useRef<string | null>(null);
   const nudgeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -91,6 +98,9 @@ export function useGameState() {
       setRevealedUsers(new Map());
       setIsGeneratingDeck(false);
       setNarrativeInsights([]);
+      setRevealNotifications(new Map());
+      setActiveChat(null);
+      setChatMessages([]);
       // Clear nudge timeout on sync (room reset)
       if (nudgeTimeoutRef.current) {
         clearTimeout(nudgeTimeoutRef.current);
@@ -153,6 +163,69 @@ export function useGameState() {
         });
         return next;
       });
+      // Clear reveal notification for this user
+      setRevealNotifications((prev) => {
+        const next = new Map(prev);
+        next.delete(revealMsg.userId);
+        return next;
+      });
+      return;
+    }
+
+    if (msg.type === "REVEAL_REQUEST_NOTIFICATION") {
+      const notificationMsg = msg as RevealRequestNotificationMessage;
+      setRevealNotifications((prev) => {
+        const next = new Map(prev);
+        next.set(notificationMsg.requesterId, {
+          requesterId: notificationMsg.requesterId,
+          requesterName: notificationMsg.requesterName,
+          requesterColor: notificationMsg.requesterColor,
+        });
+        return next;
+      });
+      return;
+    }
+
+    if (msg.type === "CHAT_STARTED") {
+      const chatMsg = msg as ChatStartedMessage;
+      setActiveChat({
+        chatId: chatMsg.chatId,
+        partnerId: chatMsg.partnerId,
+        partnerName: chatMsg.partnerName,
+        partnerColor: chatMsg.partnerColor,
+      });
+      setChatMessages([]);
+      // Clear reveal notification for this partner
+      setRevealNotifications((prev) => {
+        const next = new Map(prev);
+        next.delete(chatMsg.partnerId);
+        return next;
+      });
+      return;
+    }
+
+    if (msg.type === "CHAT_MESSAGE") {
+      const chatMsg = msg as ChatMessageReceive;
+      const currentMyId = myIdRef.current;
+      if (!currentMyId) return;
+      
+      setChatMessages((prev) => {
+        const newMessages = [...prev];
+        newMessages.push({
+          fromId: chatMsg.fromId,
+          fromName: chatMsg.fromName,
+          text: chatMsg.text,
+          timestamp: chatMsg.timestamp,
+          isOwn: chatMsg.fromId === currentMyId,
+        });
+        return newMessages;
+      });
+      return;
+    }
+
+    if (msg.type === "CHAT_CLOSED") {
+      setActiveChat(null);
+      setChatMessages([]);
       return;
     }
 
@@ -269,6 +342,10 @@ export function useGameState() {
 
   const currentQuestion = questions[currentQuestionIndex] ?? null;
 
+  const addChatMessageLocally = useCallback((message: { fromId: string; fromName: string; text: string; timestamp: number; isOwn: boolean }) => {
+    setChatMessages((prev) => [...prev, message]);
+  }, []);
+
   return {
     users,
     myId,
@@ -283,6 +360,10 @@ export function useGameState() {
     isGeneratingDeck,
     narrativeInsights,
     nudgeCooldowns,
+    revealNotifications,
+    activeChat,
+    chatMessages,
     handleMessage,
+    addChatMessageLocally,
   };
 }

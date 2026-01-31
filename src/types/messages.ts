@@ -53,6 +53,17 @@ export type NudgeMessage = {
   targetId: string;
 };
 
+export type ChatMessageSend = {
+  type: "CHAT_MESSAGE";
+  chatId: string;
+  text: string;
+};
+
+export type ChatCloseRequestMessage = {
+  type: "CHAT_CLOSE_REQUEST";
+  chatId: string;
+};
+
 export type ClientMessage = 
   | CursorMessage 
   | AnswerMessage 
@@ -63,7 +74,9 @@ export type ClientMessage =
   | StartGameMessage
   | TTSRequestMessage
   | PlayerReadyMessage
-  | NudgeMessage;
+  | NudgeMessage
+  | ChatMessageSend
+  | ChatCloseRequestMessage;
 
 // Server → Client Messages
 export type UserInfo = {
@@ -197,6 +210,35 @@ export type NudgeReceivedMessage = {
   senderColor: string;
 };
 
+export type RevealRequestNotificationMessage = {
+  type: "REVEAL_REQUEST_NOTIFICATION";
+  requesterId: string;
+  requesterName: string;
+  requesterColor: string;
+};
+
+export type ChatStartedMessage = {
+  type: "CHAT_STARTED";
+  chatId: string;
+  partnerId: string;
+  partnerName: string;
+  partnerColor: string;
+};
+
+export type ChatMessageReceive = {
+  type: "CHAT_MESSAGE";
+  chatId: string;
+  fromId: string;
+  fromName: string;
+  text: string;
+  timestamp: number;
+};
+
+export type ChatClosedMessage = {
+  type: "CHAT_CLOSED";
+  chatId: string;
+};
+
 export type ServerMessage =
   | SyncMessage
   | JoinMessage
@@ -214,7 +256,11 @@ export type ServerMessage =
   | NarrativeMessage
   | ReadyStatusMessage
   | NudgeStatusMessage
-  | NudgeReceivedMessage;
+  | NudgeReceivedMessage
+  | RevealRequestNotificationMessage
+  | ChatStartedMessage
+  | ChatMessageReceive
+  | ChatClosedMessage;
 
 // Type Guards (validators)
 const MAX_ID_LENGTH = 64;
@@ -311,5 +357,31 @@ export function isValidNudgeMessage(msg: unknown): msg is NudgeMessage {
     typeof m.targetId === "string" &&
     m.targetId.length > 0 &&
     m.targetId.length <= MAX_ID_LENGTH
+  );
+}
+
+export function isValidChatMessageSend(msg: unknown): msg is ChatMessageSend {
+  if (typeof msg !== "object" || msg === null) return false;
+  const m = msg as Record<string, unknown>;
+  return (
+    m.type === "CHAT_MESSAGE" &&
+    typeof m.chatId === "string" &&
+    typeof m.text === "string" &&
+    m.chatId.length > 0 &&
+    m.chatId.length <= MAX_ID_LENGTH * 2 + 1 && // "userId1-userId2"
+    m.text.length > 0 &&
+    m.text.length <= 500 && // Max 500 characters
+    m.text.trim().length > 0 // Must have non-whitespace content
+  );
+}
+
+export function isValidChatCloseRequestMessage(msg: unknown): msg is ChatCloseRequestMessage {
+  if (typeof msg !== "object" || msg === null) return false;
+  const m = msg as Record<string, unknown>;
+  return (
+    m.type === "CHAT_CLOSE_REQUEST" &&
+    typeof m.chatId === "string" &&
+    m.chatId.length > 0 &&
+    m.chatId.length <= MAX_ID_LENGTH * 2 + 1
   );
 }

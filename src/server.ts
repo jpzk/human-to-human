@@ -8,6 +8,8 @@ import {
   isValidTTSRequestMessage,
   isValidPlayerReadyMessage,
   isValidNudgeMessage,
+  isValidChatMessageSend,
+  isValidChatCloseRequestMessage,
   type SyncMessage,
   type PlayerAnsweredMessage,
   type PhaseChangeMessage,
@@ -23,6 +25,10 @@ import {
   type ReadyStatusMessage,
   type NudgeStatusMessage,
   type NudgeReceivedMessage,
+  type RevealRequestNotificationMessage,
+  type ChatStartedMessage,
+  type ChatMessageReceive,
+  type ChatClosedMessage,
 } from "./types/messages";
 import { GamePhase, QuestionType, type LobbyConfig, type Question } from "./types/game";
 import { getDeck, generateDeck, deckToQuestions } from "./services/deckService";
@@ -108,6 +114,11 @@ export default class GameServer implements Party.Server {
   private narrativeGenerationPromise: Promise<void> | null = null; // Track ongoing narrative generation
   private resultsReadyPlayers = new Set<string>(); // Track who's ready on results screen
   private nudgeCooldowns = new Map<string, Map<string, number>>(); // senderId → (targetId → timestamp)
+  
+  // Chat session management
+  private activeChats = new Map<string, { participants: [string, string]; startedAt: number }>(); // chatId → session
+  private chatMessageCounts = new Map<string, Map<string, number>>(); // chatId → (userId → message count)
+  private chatMessageTimestamps = new Map<string, Map<string, number>>(); // chatId → (userId → last message timestamp)
 
   constructor(readonly room: Party.Room) {
     // Validate API key at startup (non-blocking warning)
@@ -477,6 +488,20 @@ export default class GameServer implements Party.Server {
       }
       this.revealRequests.get(sender.id)!.add(payload.targetId);
 
+      // Send notification to target user
+      const targetConnection = [...this.room.getConnections()].find(
+        (c) => c.id === payload.targetId
+      );
+      if (targetConnection) {
+        const notification: RevealRequestNotificationMessage = {
+          type: "REVEAL_REQUEST_NOTIFICATION",
+          requesterId: sender.id,
+          requesterName: requester.name,
+          requesterColor: requester.color,
+        };
+        targetConnection.send(JSON.stringify(notification));
+      }
+
       // Check for mutual reveal
       if (this.isMutualReveal(sender.id, payload.targetId)) {
         // Send mutual reveal to both parties
@@ -488,9 +513,6 @@ export default class GameServer implements Party.Server {
         };
         sender.send(JSON.stringify(requesterReveal));
 
-        const targetConnection = [...this.room.getConnections()].find(
-          (c) => c.id === payload.targetId
-        );
         if (targetConnection) {
           const targetReveal: RevealMutualMessage = {
             type: "REVEAL_MUTUAL",
@@ -499,6 +521,31 @@ export default class GameServer implements Party.Server {
             color: requester.color,
           };
           targetConnection.send(JSON.stringify(targetReveal));
+        }
+
+        // Create chat session
+        const chatId = this.getChatId(sender.id, payload.targetId);
+        this.createChatSession(chatId, sender.id, payload.targetId);
+
+        // Send CHAT_STARTED to both users
+        const requesterChatStart: ChatStartedMessage = {
+          type: "CHAT_STARTED",
+          chatId,
+          partnerId: payload.targetId,
+          partnerName: target.name,
+          partnerColor: target.color,
+        };
+        sender.send(JSON.stringify(requesterChatStart));
+
+        if (targetConnection) {
+          const targetChatStart: ChatStartedMessage = {
+            type: "CHAT_STARTED",
+            chatId,
+            partnerId: sender.id,
+            partnerName: requester.name,
+            partnerColor: requester.color,
+          };
+          targetConnection.send(JSON.stringify(targetChatStart));
         }
       } else {
         // Send pending status
@@ -509,6 +556,98 @@ export default class GameServer implements Party.Server {
         };
         sender.send(JSON.stringify(status));
       }
+      return;
+    }
+
+    // Handle chat messages
+    if (isValidChatMessageSend(payload)) {
+      const chatSession = this.activeChats.get(payload.chatId);
+      if (!chatSession) return; // Chat doesn't exist
+
+      // Verify sender is a participant
+      if (chatSession.participants[0] !== sender.id && chatSession.participants[1] !== sender.id) {
+        return; // Not a participant
+      }
+
+      // Rate limiting: max 10 messages per 10 seconds per user
+      const now = Date.now();
+      const userCounts = this.chatMessageCounts.get(payload.chatId) || new Map();
+      const userTimestamps = this.chatMessageTimestamps.get(payload.chatId) || new Map();
+      
+      const userCount = userCounts.get(sender.id) || 0;
+      const lastTimestamp = userTimestamps.get(sender.id) || 0;
+      
+      if (now - lastTimestamp < 10000) {
+        // Within 10 second window
+        if (userCount >= 10) {
+          return; // Rate limited
+        }
+        userCounts.set(sender.id, userCount + 1);
+      } else {
+        // New 10 second window
+        userCounts.set(sender.id, 1);
+      }
+      userTimestamps.set(sender.id, now);
+      this.chatMessageCounts.set(payload.chatId, userCounts);
+      this.chatMessageTimestamps.set(payload.chatId, userTimestamps);
+
+      // Sanitize message (already validated length and non-empty by validator)
+      const sanitizedText = payload.text.trim();
+
+      // Find partner
+      const partnerId = chatSession.participants[0] === sender.id 
+        ? chatSession.participants[1] 
+        : chatSession.participants[0];
+      
+      const partnerConnection = [...this.room.getConnections()].find(
+        (c) => c.id === partnerId
+      );
+      
+      const senderUser = this.users.get(sender.id);
+      if (!senderUser || !partnerConnection) return;
+
+      // Send message to partner
+      const chatMessage: ChatMessageReceive = {
+        type: "CHAT_MESSAGE",
+        chatId: payload.chatId,
+        fromId: sender.id,
+        fromName: senderUser.name,
+        text: sanitizedText,
+        timestamp: now,
+      };
+      partnerConnection.send(JSON.stringify(chatMessage));
+      return;
+    }
+
+    // Handle chat close requests
+    if (isValidChatCloseRequestMessage(payload)) {
+      const chatSession = this.activeChats.get(payload.chatId);
+      if (!chatSession) return; // Chat doesn't exist
+
+      // Verify sender is a participant
+      if (chatSession.participants[0] !== sender.id && chatSession.participants[1] !== sender.id) {
+        return; // Not a participant
+      }
+
+      // Close immediately for both participants
+      const closedMsg: ChatClosedMessage = {
+        type: "CHAT_CLOSED",
+        chatId: payload.chatId,
+      };
+      
+      // Send to both participants
+      const participant0 = [...this.room.getConnections()].find(
+        (c) => c.id === chatSession.participants[0]
+      );
+      const participant1 = [...this.room.getConnections()].find(
+        (c) => c.id === chatSession.participants[1]
+      );
+      
+      if (participant0) participant0.send(JSON.stringify(closedMsg));
+      if (participant1) participant1.send(JSON.stringify(closedMsg));
+
+      // Clean up chat session
+      this.closeChatSession(payload.chatId);
       return;
     }
   }
@@ -606,8 +745,35 @@ export default class GameServer implements Party.Server {
   }
 
   private leave(connection: Party.Connection): void {
-    this.users.delete(connection.id);
-    this.revealRequests.delete(connection.id);
+    const userId = connection.id;
+    
+    // Close any active chats this user is in
+    for (const [chatId, session] of this.activeChats.entries()) {
+      if (session.participants[0] === userId || session.participants[1] === userId) {
+        // Notify partner
+        const partnerId = session.participants[0] === userId 
+          ? session.participants[1] 
+          : session.participants[0];
+        
+        const partnerConnection = [...this.room.getConnections()].find(
+          (c) => c.id === partnerId
+        );
+        
+        if (partnerConnection) {
+          const closedMsg: ChatClosedMessage = {
+            type: "CHAT_CLOSED",
+            chatId,
+          };
+          partnerConnection.send(JSON.stringify(closedMsg));
+        }
+        
+        // Clean up chat session
+        this.closeChatSession(chatId);
+      }
+    }
+    
+    this.users.delete(userId);
+    this.revealRequests.delete(userId);
     this.nudgeCooldowns.delete(connection.id);
     // Remove this user from other users' reveal request sets
     for (const requests of this.revealRequests.values()) {
@@ -886,6 +1052,26 @@ export default class GameServer implements Party.Server {
       this.revealRequests.get(userA)?.has(userB) === true &&
       this.revealRequests.get(userB)?.has(userA) === true
     );
+  }
+
+  private getChatId(userId1: string, userId2: string): string {
+    return [userId1, userId2].sort().join('-');
+  }
+
+  private createChatSession(chatId: string, userId1: string, userId2: string): void {
+    this.activeChats.set(chatId, {
+      participants: [userId1, userId2].sort() as [string, string],
+      startedAt: Date.now(),
+    });
+    // Initialize rate limiting maps
+    this.chatMessageCounts.set(chatId, new Map());
+    this.chatMessageTimestamps.set(chatId, new Map());
+  }
+
+  private closeChatSession(chatId: string): void {
+    this.activeChats.delete(chatId);
+    this.chatMessageCounts.delete(chatId);
+    this.chatMessageTimestamps.delete(chatId);
   }
 
   private async handleTTSRequest(

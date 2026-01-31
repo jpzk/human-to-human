@@ -7,6 +7,8 @@ import { WaitingLobbyView } from "@/components/game/WaitingLobbyView";
 import { TTSToggle } from "@/components/game/TTSToggle";
 import { HiddenCursorOverlay } from "@/components/game/HiddenCursorOverlay";
 import { NudgeNotification } from "@/components/game/NudgeNotification";
+import { RevealRequestNotification } from "@/components/game/RevealRequestNotification";
+import { ChatModal } from "@/components/game/ChatModal";
 import { GamePhase } from "@/types/game";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useGameState } from "@/hooks/useGameState";
@@ -14,7 +16,7 @@ import { useTTS } from "@/hooks/useTTS";
 import { getTotalPlayers } from "@/services/gameService";
 import { generateRoomId, getRoomIdFromUrl, setRoomIdInUrl, getRoomLink } from "@/lib/roomUtils";
 import { Button } from "@/components/ui/button";
-import type { ServerMessage, TTSResponseMessage, ReadyStatusMessage, NudgeMessage } from "@/types/messages";
+import type { ServerMessage, TTSResponseMessage, ReadyStatusMessage, NudgeMessage, ChatMessageSend, ChatCloseRequestMessage } from "@/types/messages";
 import "./App.css";
 
 const VIEWPORT_W = 1280;
@@ -59,6 +61,9 @@ export default function App() {
   const [resultsReadyCount, setResultsReadyCount] = useState(0);
   const [resultsTotalPlayers, setResultsTotalPlayers] = useState(0);
   const [isCurrentUserReady, setIsCurrentUserReady] = useState(false);
+  
+  // Track dismissed reveal notifications locally
+  const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
 
   // Use custom hooks for game state and WebSocket (only connect if roomId exists)
   const gameState = useGameState();
@@ -118,6 +123,10 @@ export default function App() {
     questions,
     narrativeInsights,
     nudgeCooldowns,
+    revealNotifications,
+    activeChat,
+    chatMessages,
+    addChatMessageLocally,
   } = gameState;
 
   // Update myId ref when it changes
@@ -161,6 +170,40 @@ export default function App() {
 
   const handleRevealRequest = (targetId: string) => {
     sendMessage({ type: "REVEAL_REQUEST", targetId });
+  };
+
+  const handleSendChatMessage = (text: string) => {
+    if (!activeChat || !myId || !myName) return;
+    
+    // Add message locally immediately (optimistic update)
+    const localMessage = {
+      fromId: myId,
+      fromName: myName,
+      text: text,
+      timestamp: Date.now(),
+      isOwn: true,
+    };
+    addChatMessageLocally(localMessage);
+    
+    // Send to server for partner
+    sendMessage({
+      type: "CHAT_MESSAGE",
+      chatId: activeChat.chatId,
+      text,
+    } as ChatMessageSend);
+  };
+
+  const handleCloseChat = () => {
+    if (!activeChat) return;
+    sendMessage({
+      type: "CHAT_CLOSE_REQUEST",
+      chatId: activeChat.chatId,
+    } as ChatCloseRequestMessage);
+  };
+
+  const handleDismissRevealNotification = (requesterId: string) => {
+    // Track dismissed notifications locally
+    setDismissedNotifications((prev) => new Set(prev).add(requesterId));
   };
 
   const handleNudge = useCallback((targetId: string) => {
@@ -437,6 +480,32 @@ export default function App() {
         <NudgeNotification
           from={users[myId].nudgeNotification.from}
           color={users[myId].nudgeNotification.color}
+        />
+      )}
+
+      {/* Show reveal request notifications */}
+      {Array.from(revealNotifications.entries())
+        .filter(([requesterId]) => !dismissedNotifications.has(requesterId))
+        .map(([requesterId, notification], index) => (
+          <RevealRequestNotification
+            key={requesterId}
+            requesterId={notification.requesterId}
+            requesterName={notification.requesterName}
+            requesterColor={notification.requesterColor}
+            onDismiss={() => handleDismissRevealNotification(requesterId)}
+            top={20 + index * 80}
+          />
+        ))}
+
+      {/* Show chat modal */}
+      {activeChat && (
+        <ChatModal
+          chatId={activeChat.chatId}
+          partnerName={activeChat.partnerName}
+          partnerColor={activeChat.partnerColor}
+          messages={chatMessages}
+          onSendMessage={handleSendChatMessage}
+          onCloseRequest={handleCloseChat}
         />
       )}
       
