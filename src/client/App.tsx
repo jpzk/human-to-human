@@ -409,6 +409,7 @@ export default function App() {
                 answeredBy={answeredBy}
                 myId={myId}
                 myName={myName}
+                myColor={myColor}
                 onAnswer={handleAnswer}
                 onSliderAnswer={handleSliderAnswer}
               />

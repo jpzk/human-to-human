@@ -12,6 +12,7 @@ type AnsweringViewProps = {
   answeredBy: Record<string, string[]>;
   myId: string | null;
   myName: string | null;
+  myColor: string | null;
   onAnswer: (questionId: string, answerId: string) => void;
   onSliderAnswer: (questionId: string, value: number) => void;
 };
@@ -24,6 +25,7 @@ export function AnsweringView({
   answeredBy,
   myId,
   myName,
+  myColor,
   onAnswer,
   onSliderAnswer,
 }: AnsweringViewProps) {
@@ -76,6 +78,7 @@ export function AnsweringView({
           question={currentQuestion}
           onAnswer={onAnswer}
           hasAnswered={hasAnswered}
+          myColor={myColor}
         />
       ) : currentQuestion.type === QuestionType.SLIDER ? (
         <SliderQuestionCard
@@ -83,6 +86,7 @@ export function AnsweringView({
           question={currentQuestion}
           onAnswer={onSliderAnswer}
           hasAnswered={hasAnswered}
+          myColor={myColor}
         />
       ) : null}
     </>

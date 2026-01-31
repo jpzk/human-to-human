@@ -1,18 +1,21 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { getContrastTextColor } from "@/lib/utils";
 import type { SliderQuestion } from "@/types/game";
 
 type SliderQuestionCardProps = {
   question: SliderQuestion;
   onAnswer: (questionId: string, value: number) => void;
   hasAnswered?: boolean;
+  myColor?: string | null;
 };
 
 export function SliderQuestionCard({
   question,
   onAnswer,
   hasAnswered = false,
+  myColor,
 }: SliderQuestionCardProps) {
   const { config } = question;
   // Initialize to middle position (or closest to middle for even positions)
@@ -49,6 +52,15 @@ export function SliderQuestionCard({
         variant={isConfirmed ? "default" : "gameOutline"}
         effect="expand"
         className="h-auto py-4 px-8 text-base"
+        style={
+          isConfirmed && myColor
+            ? {
+                backgroundColor: myColor,
+                color: getContrastTextColor(myColor),
+                borderColor: myColor,
+              }
+            : undefined
+        }
         onClick={handleConfirm}
         disabled={isDisabled}
       >
