@@ -1,0 +1,54 @@
+.viewport-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.viewport {
+  position: relative;
+  transform-origin: center center;
+  flex-shrink: 0;
+  border: 4px dashed hsl(var(--flexoki-ui-3));
+  box-sizing: border-box;
+}
+
+.cursors {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.cursor {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: left 0.05s linear, top 0.05s linear;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.cursor-icon {
+  flex-shrink: 0;
+}
+
+.cursor-name {
+  font-size: 18px;
+  color: var(--color, hsl(var(--flexoki-tx)));
+}
+
+.status-bar {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #666;
+  z-index: 10;
+}

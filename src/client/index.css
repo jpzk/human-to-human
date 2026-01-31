@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+/* Flexoki palette – https://gist.github.com/phenomen/affd8c346538378548febd20dccdbfcc */
+:root {
+  --flexoki-bg: 48 100% 97%;
+  --flexoki-bg-2: 51 33% 92%;
+  --flexoki-ui: 51 21% 88%;
+  --flexoki-ui-2: 50 14% 83%;
+  --flexoki-ui-3: 55 10% 79%;
+  --flexoki-tx: 0 3% 6%;
+  --flexoki-tx-2: 50 3% 42%;
+  --flexoki-tx-3: 49 7% 70%;
+  --flexoki-re: 3 62% 42%;
+}
+
+.dark {
+  --flexoki-bg: 0 3% 6%;
+  --flexoki-bg-2: 30 4% 11%;
+  --flexoki-ui: 30 3% 15%;
+  --flexoki-ui-2: 40 3% 20%;
+  --flexoki-ui-3: 30 3% 24%;
+  --flexoki-tx: 55 10% 79%;
+  --flexoki-tx-2: 43 3% 52%;
+  --flexoki-tx-3: 45 2% 33%;
+  --flexoki-re: 5 61% 54%;
+}
+
+:root {
+  --radius: 0.5rem;
+  --background: hsl(var(--flexoki-bg));
+  --foreground: hsl(var(--flexoki-tx));
+  --card: hsl(var(--flexoki-bg));
+  --card-foreground: hsl(var(--flexoki-tx));
+  --popover: hsl(var(--flexoki-bg));
+  --popover-foreground: hsl(var(--flexoki-tx));
+  --primary: hsl(var(--flexoki-tx));
+  --primary-foreground: hsl(var(--flexoki-bg));
+  --secondary: hsl(var(--flexoki-ui-2));
+  --secondary-foreground: hsl(var(--flexoki-tx-2));
+  --muted: hsl(var(--flexoki-bg-2));
+  --muted-foreground: hsl(var(--flexoki-tx-3));
+  --accent: hsl(var(--flexoki-ui));
+  --accent-foreground: hsl(var(--flexoki-tx-2));
+  --destructive: hsl(var(--flexoki-re));
+  --destructive-foreground: hsl(var(--flexoki-bg));
+  --border: hsl(var(--flexoki-ui-2));
+  --input: hsl(var(--flexoki-ui-2));
+  --ring: hsl(var(--flexoki-ui-3));
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: inherit;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: system-ui, sans-serif;
+}
+
+body {
+  background: hsl(var(--flexoki-bg));
+  color: hsl(var(--flexoki-tx));
+  overflow: hidden;
+}

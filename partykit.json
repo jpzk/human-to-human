@@ -1,0 +1,6 @@
+{
+  "name": "multiplayer-game-boilerplate",
+  "main": "src/server.ts",
+  "compatibilityDate": "2024-01-01",
+  "serve": "dist"
+}
