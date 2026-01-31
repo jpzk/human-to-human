@@ -177,6 +177,11 @@ export type DeckReadyMessage = {
   questionCount: number;
 };
 
+export type DeckErrorMessage = {
+  type: "DECK_ERROR";
+  error: string;
+};
+
 export type TTSResponseMessage = {
   type: "TTS_RESPONSE";
   requestId: string;
@@ -253,6 +258,7 @@ export type ServerMessage =
   | QuestionAdvanceMessage
   | DeckGeneratingMessage
   | DeckReadyMessage
+  | DeckErrorMessage
   | TTSResponseMessage
   | NarrativeMessage
   | ReadyStatusMessage

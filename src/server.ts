@@ -20,6 +20,7 @@ import {
   type QuestionAdvanceMessage,
   type DeckGeneratingMessage,
   type DeckReadyMessage,
+  type DeckErrorMessage,
   type TTSResponseMessage,
   type NarrativeMessage,
   type ReadyStatusMessage,
@@ -702,6 +703,13 @@ export default class GameServer implements Party.Server {
         // Reset config on error
         this.lobbyConfig = null;
         this.questions = [];
+        
+        // Notify clients of the error
+        const errorMsg: DeckErrorMessage = {
+          type: "DECK_ERROR",
+          error: error instanceof Error ? error.message : "Failed to generate deck",
+        };
+        this.room.broadcast(JSON.stringify(errorMsg));
         return;
       }
     } else if (payload.deck) {

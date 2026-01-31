@@ -10,6 +10,7 @@ import type {
   QuestionAdvanceMessage,
   DeckGeneratingMessage,
   DeckReadyMessage,
+  DeckErrorMessage,
   NarrativeMessage,
   NudgeStatusMessage,
   NudgeReceivedMessage,
@@ -63,6 +64,7 @@ export function useGameState() {
   const [lobbyConfig, setLobbyConfig] = useState<LobbyConfig | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isGeneratingDeck, setIsGeneratingDeck] = useState(false);
+  const [deckError, setDeckError] = useState<string | null>(null);
   const [narrativeInsights, setNarrativeInsights] = useState<string[]>([]);
   const [nudgeCooldowns, setNudgeCooldowns] = useState<Record<string, number>>({});
   const [revealNotifications, setRevealNotifications] = useState<Map<string, { requesterId: string; requesterName: string; requesterColor: string }>>(new Map());
@@ -116,12 +118,21 @@ export function useGameState() {
     if (msg.type === "DECK_GENERATING") {
       const generatingMsg = msg as DeckGeneratingMessage;
       setIsGeneratingDeck(true);
+      setDeckError(null);
       return;
     }
 
     if (msg.type === "DECK_READY") {
       const readyMsg = msg as DeckReadyMessage;
       setIsGeneratingDeck(false);
+      setDeckError(null);
+      return;
+    }
+
+    if (msg.type === "DECK_ERROR") {
+      const errorMsg = msg as DeckErrorMessage;
+      setIsGeneratingDeck(false);
+      setDeckError(errorMsg.error);
       return;
     }
 
@@ -362,6 +373,7 @@ export function useGameState() {
     lobbyConfig,
     questions,
     isGeneratingDeck,
+    deckError,
     narrativeInsights,
     nudgeCooldowns,
     revealNotifications,

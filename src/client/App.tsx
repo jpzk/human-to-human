@@ -122,6 +122,7 @@ export default function App() {
     lobbyConfig,
     questions,
     isGeneratingDeck,
+    deckError,
     narrativeInsights,
     nudgeCooldowns,
     revealNotifications,
@@ -376,6 +377,7 @@ export default function App() {
               users={users}
               lobbyConfig={lobbyConfig}
               isGeneratingDeck={isGeneratingDeck}
+              deckError={deckError}
               roomLink={getRoomLink(roomId)}
               isHost={isHost}
               onStartGame={handleStartGame}

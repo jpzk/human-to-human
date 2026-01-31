@@ -12,6 +12,7 @@ type WaitingLobbyViewProps = {
   users: Record<string, User>;
   lobbyConfig: LobbyConfig | null;
   isGeneratingDeck: boolean;
+  deckError: string | null;
   roomLink: string;
   isHost: boolean;
   onStartGame: () => void;
@@ -26,6 +27,7 @@ export function WaitingLobbyView({
   users,
   lobbyConfig,
   isGeneratingDeck,
+  deckError,
   roomLink,
   isHost,
   onStartGame,
@@ -54,8 +56,20 @@ export function WaitingLobbyView({
               </p>
             </div>
 
-            {/* Lobby Config / Generating State */}
-            {isGeneratingDeck ? (
+            {/* Lobby Config / Generating State / Error State */}
+            {deckError ? (
+              <div className="p-4 border border-red-500/50 rounded-lg bg-red-500/10">
+                <div className="text-sm">
+                  <span className="font-medium text-red-500">Failed to generate deck</span>
+                  <p className="text-muted-foreground text-xs mt-1">
+                    {deckError}
+                  </p>
+                  <p className="text-muted-foreground text-xs mt-2">
+                    Please refresh and try again, or select "Old Fashioned" deck.
+                  </p>
+                </div>
+              </div>
+            ) : isGeneratingDeck ? (
               <div className="p-4 border border-border rounded-lg bg-muted/30">
                 <div className="flex items-center gap-3">
                   <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -106,12 +120,14 @@ export function WaitingLobbyView({
             {/* Start Game Button */}
             <Button
               onClick={onStartGame}
-              disabled={!canStart || !isHost}
+              disabled={!canStart || !isHost || !!deckError}
               className="w-full"
               size="lg"
               effect="expand"
             >
-              {isGeneratingDeck
+              {deckError
+                ? "Deck generation failed"
+                : isGeneratingDeck
                 ? "Generating deck..."
                 : !lobbyConfig
                 ? "Waiting for host to configure..."
