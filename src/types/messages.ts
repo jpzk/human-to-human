@@ -11,6 +11,12 @@ export type AnswerMessage = {
   answerId: string;
 };
 
+export type SliderAnswerMessage = {
+  type: "SLIDER_ANSWER";
+  questionId: string;
+  value: number; // 0-100 normalized value
+};
+
 export type RevealRequestClientMessage = {
   type: "REVEAL_REQUEST";
   targetId: string;
@@ -23,6 +29,7 @@ export type TransitionToRevealMessage = {
 export type ClientMessage = 
   | CursorMessage 
   | AnswerMessage 
+  | SliderAnswerMessage
   | RevealRequestClientMessage 
   | TransitionToRevealMessage;
 
@@ -160,5 +167,20 @@ export function isValidRevealRequestMessage(msg: unknown): msg is RevealRequestC
     typeof m.targetId === "string" &&
     m.targetId.length > 0 &&
     m.targetId.length <= MAX_ID_LENGTH
+  );
+}
+
+export function isValidSliderAnswerMessage(msg: unknown): msg is SliderAnswerMessage {
+  if (typeof msg !== "object" || msg === null) return false;
+  const m = msg as Record<string, unknown>;
+  return (
+    m.type === "SLIDER_ANSWER" &&
+    typeof m.questionId === "string" &&
+    typeof m.value === "number" &&
+    m.questionId.length > 0 &&
+    m.questionId.length <= MAX_ID_LENGTH &&
+    Number.isFinite(m.value) &&
+    m.value >= 0 &&
+    m.value <= 100
   );
 }

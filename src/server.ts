@@ -3,6 +3,7 @@ import {
   isValidAnswerMessage,
   isValidCursorMessage,
   isValidRevealRequestMessage,
+  isValidSliderAnswerMessage,
   type SyncMessage,
   type PlayerAnsweredMessage,
   type PhaseChangeMessage,
@@ -12,7 +13,7 @@ import {
   type RevealMutualMessage,
   type QuestionAdvanceMessage,
 } from "./types/messages";
-import { GamePhase, PLACEHOLDER_QUESTIONS } from "./types/game";
+import { GamePhase, PLACEHOLDER_QUESTIONS, QuestionType } from "./types/game";
 
 // Name generation
 const ADJECTIVES = [
@@ -48,10 +49,15 @@ function randomColor(): string {
   return pick(FLEXOKI_200);
 }
 
+// Answer value discriminated union to support multiple question types
+type AnswerValue = 
+  | { type: "choice"; answerId: string }
+  | { type: "slider"; value: number };
+
 type UserState = {
   name: string;
   color: string;
-  answers: Map<string, string>; // questionId → answerId
+  answers: Map<string, AnswerValue>; // questionId → answer value
 };
 
 export default class GameServer implements Party.Server {
@@ -136,7 +142,7 @@ export default class GameServer implements Party.Server {
       return;
     }
 
-    // Handle answer submissions
+    // Handle multiple-choice answer submissions
     if (isValidAnswerMessage(payload)) {
       if (this.phase !== GamePhase.ANSWERING) return;
 
@@ -146,7 +152,33 @@ export default class GameServer implements Party.Server {
       // First answer wins - no changes allowed
       if (player.answers.has(payload.questionId)) return;
 
-      player.answers.set(payload.questionId, payload.answerId);
+      player.answers.set(payload.questionId, { type: "choice", answerId: payload.answerId });
+
+      const event: PlayerAnsweredMessage = {
+        type: "PLAYER_ANSWERED",
+        anonymousName: player.name,
+        questionId: payload.questionId,
+      };
+      this.room.broadcast(JSON.stringify(event));
+
+      // Auto-advance if all players answered current question
+      if (this.checkAllAnsweredCurrentQuestion()) {
+        this.advanceToNextQuestion();
+      }
+      return;
+    }
+
+    // Handle slider answer submissions
+    if (isValidSliderAnswerMessage(payload)) {
+      if (this.phase !== GamePhase.ANSWERING) return;
+
+      const player = this.users.get(sender.id);
+      if (!player) return;
+
+      // First answer wins - no changes allowed
+      if (player.answers.has(payload.questionId)) return;
+
+      player.answers.set(payload.questionId, { type: "slider", value: payload.value });
 
       const event: PlayerAnsweredMessage = {
         type: "PLAYER_ANSWERED",
@@ -285,13 +317,44 @@ export default class GameServer implements Party.Server {
   private calculateCompatibility(userA: UserState, userB: UserState): number {
     if (userA.answers.size === 0) return 0;
 
-    let matches = 0;
+    let totalScore = 0;
+    let questionCount = 0;
+
     for (const [qId, answerA] of userA.answers) {
-      if (userB.answers.get(qId) === answerA) {
-        matches++;
+      const answerB = userB.answers.get(qId);
+      if (!answerB) continue;
+
+      questionCount++;
+
+      if (answerA.type === "choice" && answerB.type === "choice") {
+        // Exact match for multiple choice
+        totalScore += answerA.answerId === answerB.answerId ? 1 : 0;
+      } else if (answerA.type === "slider" && answerB.type === "slider") {
+        // Proximity score for slider: normalize to 0-1 range based on question positions
+        // Find the question to get its positions count
+        const question = PLACEHOLDER_QUESTIONS.find((q) => q.id === qId);
+        if (question && question.type === QuestionType.SLIDER) {
+          const maxPosition = question.config.positions - 1;
+          if (maxPosition > 0) {
+            // Normalize both values to 0-1 range for fair comparison
+            const normalizedA = answerA.value / maxPosition;
+            const normalizedB = answerB.value / maxPosition;
+            const diff = Math.abs(normalizedA - normalizedB);
+            totalScore += 1 - diff;
+          } else {
+            // Fallback: exact match if only one position
+            totalScore += answerA.value === answerB.value ? 1 : 0;
+          }
+        } else {
+          // Fallback: treat as 0-100 range for backward compatibility
+          const diff = Math.abs(answerA.value - answerB.value);
+          totalScore += 1 - diff / 100;
+        }
       }
+      // If answer types don't match (shouldn't happen), count as 0
     }
-    return matches / userA.answers.size; // 0.0 to 1.0
+
+    return questionCount > 0 ? totalScore / questionCount : 0; // 0.0 to 1.0
   }
 
   private transitionToResults(): void {

@@ -76,6 +76,10 @@ export default function App() {
     sendMessage({ type: "ANSWER", questionId, answerId });
   };
 
+  const handleSliderAnswer = (questionId: string, value: number) => {
+    sendMessage({ type: "SLIDER_ANSWER", questionId, value });
+  };
+
   const handleResetGame = () => {
     const newRoomId = generateRoomId();
     setRoomId(newRoomId);
@@ -181,6 +185,7 @@ export default function App() {
               myId={myId}
               myName={myName}
               onAnswer={handleAnswer}
+              onSliderAnswer={handleSliderAnswer}
             />
           )}
           {phase === GamePhase.RESULTS && (

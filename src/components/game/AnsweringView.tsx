@@ -1,5 +1,6 @@
 import { QuestionCard } from "./QuestionCard";
-import { PLACEHOLDER_QUESTIONS } from "@/types/game";
+import { SliderQuestionCard } from "./SliderQuestionCard";
+import { PLACEHOLDER_QUESTIONS, QuestionType } from "@/types/game";
 import { getAnsweredCount, hasUserAnsweredQuestion } from "@/services/gameService";
 import type { Question } from "@/types/game";
 
@@ -11,6 +12,7 @@ type AnsweringViewProps = {
   myId: string | null;
   myName: string | null;
   onAnswer: (questionId: string, answerId: string) => void;
+  onSliderAnswer: (questionId: string, value: number) => void;
 };
 
 export function AnsweringView({
@@ -21,6 +23,7 @@ export function AnsweringView({
   myId,
   myName,
   onAnswer,
+  onSliderAnswer,
 }: AnsweringViewProps) {
   const totalQuestions = PLACEHOLDER_QUESTIONS.length;
   const answeredCount = getAnsweredCount(currentQuestion.id, answeredBy);
@@ -62,12 +65,22 @@ export function AnsweringView({
           );
         })}
       </div>
-      <QuestionCard 
-        key={currentQuestion.id} 
-        question={currentQuestion} 
-        onAnswer={onAnswer}
-        hasAnswered={hasAnswered}
-      />
+      {/* Polymorphic question rendering based on question type */}
+      {currentQuestion.type === QuestionType.MULTIPLE_CHOICE ? (
+        <QuestionCard
+          key={currentQuestion.id}
+          question={currentQuestion}
+          onAnswer={onAnswer}
+          hasAnswered={hasAnswered}
+        />
+      ) : currentQuestion.type === QuestionType.SLIDER ? (
+        <SliderQuestionCard
+          key={currentQuestion.id}
+          question={currentQuestion}
+          onAnswer={onSliderAnswer}
+          hasAnswered={hasAnswered}
+        />
+      ) : null}
     </>
   );
 }

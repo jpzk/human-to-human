@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import type { Question } from "@/types/game";
+import type { MultipleChoiceQuestion } from "@/types/game";
 
 type QuestionCardProps = {
-  question: Question;
+  question: MultipleChoiceQuestion;
   onAnswer?: (questionId: string, answerId: string) => void;
   hasAnswered?: boolean;
 };
