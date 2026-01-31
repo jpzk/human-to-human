@@ -2,22 +2,27 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 type CreateLobbyViewProps = {
-  onCreateLobby: (config: { deck: string }) => void;
+  onCreateLobby: (config: { deck?: string; aiTheme?: string }) => void;
 };
 
 const DECKS = [
-  { value: "(not yet) friends", label: "Friends", disabled: false },
-  { value: "coworkers", label: "Coworkers", disabled: true },
-  { value: "couples", label: "Couples", disabled: true },
-  { value: "party", label: "Party", disabled: true },
+  { value: "Old Fashioned", label: "Old Fashioned", aiTheme: null },
+  { value: "friends-ai", label: "Friends (genAI)", aiTheme: "Friends getting to know each other - questions about friendship, social life, and personal connections" },
+  { value: "coworkers-ai", label: "Coworkers (genAI)", aiTheme: "Professional colleagues getting to know each other - questions about work style, career, and professional relationships" },
+  { value: "couples-ai", label: "Couples (genAI)", aiTheme: "Romantic partners deepening their connection - questions about love, intimacy, and relationship dynamics" },
 ];
 
 export function CreateLobbyView({ onCreateLobby }: CreateLobbyViewProps) {
-  const [deck, setDeck] = useState("(not yet) friends");
+  const [deck, setDeck] = useState("Old Fashioned");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onCreateLobby({ deck });
+    const selectedDeck = DECKS.find((d) => d.value === deck);
+    if (selectedDeck?.aiTheme) {
+      onCreateLobby({ aiTheme: selectedDeck.aiTheme });
+    } else {
+      onCreateLobby({ deck });
+    }
   };
 
   return (
@@ -38,22 +43,14 @@ export function CreateLobbyView({ onCreateLobby }: CreateLobbyViewProps) {
                 <button
                   key={d.value}
                   type="button"
-                  onClick={() => !d.disabled && setDeck(d.value)}
-                  disabled={d.disabled}
+                  onClick={() => setDeck(d.value)}
                   className={`px-4 py-3 rounded-md border transition-all relative ${
-                    d.disabled
-                      ? "border-input bg-muted opacity-50 cursor-not-allowed"
-                      : deck === d.value
+                    deck === d.value
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-input bg-background hover:border-primary/50"
                   }`}
                 >
-                  <div className="flex flex-col items-center gap-1">
-                    <span>{d.label}</span>
-                    {d.disabled && (
-                      <span className="text-xs text-muted-foreground">Coming Soon</span>
-                    )}
-                  </div>
+                  <span>{d.label}</span>
                 </button>
               ))}
             </div>

@@ -52,7 +52,7 @@ export default function App() {
   });
 
   // Store pending lobby config when creating a new lobby
-  const [pendingLobbyConfig, setPendingLobbyConfig] = useState<{ deck: string } | null>(null);
+  const [pendingLobbyConfig, setPendingLobbyConfig] = useState<{ deck?: string; aiTheme?: string } | null>(null);
 
   // TTS enabled state (default ON)
   const [ttsEnabled, setTtsEnabled] = useState(true);
@@ -121,6 +121,7 @@ export default function App() {
     revealedUsers,
     lobbyConfig,
     questions,
+    isGeneratingDeck,
     narrativeInsights,
     nudgeCooldowns,
     revealNotifications,
@@ -214,7 +215,7 @@ export default function App() {
     sendMessage({ type: "TRANSITION_TO_REVEAL" });
   };
 
-  const handleCreateLobby = (config: { deck: string }) => {
+  const handleCreateLobby = (config: { deck?: string; aiTheme?: string }) => {
     const newRoomId = generateRoomId();
     setPendingLobbyConfig(config);
     setRoomId(newRoomId);
@@ -231,6 +232,7 @@ export default function App() {
       sendMessage({
         type: "CONFIGURE_LOBBY",
         deck: pendingLobbyConfig.deck,
+        aiTheme: pendingLobbyConfig.aiTheme,
       });
       setPendingLobbyConfig(null);
     }
@@ -371,6 +373,7 @@ export default function App() {
             <WaitingLobbyView
               users={users}
               lobbyConfig={lobbyConfig}
+              isGeneratingDeck={isGeneratingDeck}
               roomLink={getRoomLink(roomId)}
               onStartGame={handleStartGame}
               onCopyLink={handleCopyRoomLink}

@@ -37,12 +37,16 @@ Each deck must follow this exact JSON format:
 }
 
 Rules:
-- Each deck has exactly 5 cards
+- Each deck has exactly 10 cards
 - "buttons" type cards have exactly 4 answers
 - "slider" type cards have exactly 2 answers (representing opposite ends of a spectrum)
-- Mix button and slider types (roughly 3 buttons, 2 sliders)
-- Questions should be thought-provoking but not too personal
+- Mix button and slider types (roughly 6-7 buttons, 3-4 sliders)
 - card_name should be snake_case and descriptive
+- CRITICAL: Order questions from LEAST intimate to MOST intimate:
+  * Questions 1-3: Light, casual, easy to answer (hobbies, preferences, daily life)
+  * Questions 4-7: Medium depth (values, dreams, aspirations, relationships)
+  * Questions 8-10: Deep and vulnerable (fears, regrets, emotional truths, personal struggles)
+- The last 2-3 questions should optionally include "hideCursors": true for privacy on sensitive questions
 
 Return ONLY valid JSON, no markdown or explanation.`;
 
@@ -77,7 +81,7 @@ export async function generateDeck(
     body: JSON.stringify({
       model: "MiniMax-Text-01",
       messages,
-      temperature: 0.7,
+      temperature: 0.9,
     }),
   });
 

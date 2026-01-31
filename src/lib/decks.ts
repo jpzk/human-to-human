@@ -23,7 +23,7 @@ export interface Deck {
 
 const decks: Deck[] = [
   {
-    deck_name: "(not yet) friends",
+    deck_name: "Old Fashioned",
     cards: [
       {
         card_name: "happiness",

@@ -11,25 +11,27 @@ type User = {
 type WaitingLobbyViewProps = {
   users: Record<string, User>;
   lobbyConfig: LobbyConfig | null;
+  isGeneratingDeck: boolean;
   roomLink: string;
   onStartGame: () => void;
   onCopyLink: () => void;
 };
 
 const DECK_LABELS: Record<string, string> = {
-  "(not yet) friends": "Friends",
+  "Old Fashioned": "Old Fashioned",
 };
 
 export function WaitingLobbyView({
   users,
   lobbyConfig,
+  isGeneratingDeck,
   roomLink,
   onStartGame,
   onCopyLink,
 }: WaitingLobbyViewProps) {
   const [copied, setCopied] = useState(false);
   const playerList = Object.values(users);
-  const canStart = playerList.length >= 2 && lobbyConfig !== null;
+  const canStart = playerList.length >= 2 && lobbyConfig !== null && !isGeneratingDeck;
 
   const handleCopy = async () => {
     await onCopyLink();
@@ -50,8 +52,20 @@ export function WaitingLobbyView({
               </p>
             </div>
 
-            {/* Lobby Config */}
-            {lobbyConfig && (
+            {/* Lobby Config / Generating State */}
+            {isGeneratingDeck ? (
+              <div className="p-4 border border-border rounded-lg bg-muted/30">
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <div className="text-sm">
+                    <span className="font-medium">Generating deck...</span>
+                    <p className="text-muted-foreground text-xs mt-1">
+                      AI is creating unique questions for your session
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : lobbyConfig ? (
               <div className="p-4 border border-border rounded-lg bg-muted/30">
                 <div className="text-sm">
                   <span className="text-muted-foreground">Deck: </span>
@@ -59,12 +73,12 @@ export function WaitingLobbyView({
                     {lobbyConfig.deck
                       ? DECK_LABELS[lobbyConfig.deck] || lobbyConfig.deck
                       : lobbyConfig.aiTheme
-                      ? `AI: ${lobbyConfig.aiTheme}`
+                      ? "AI Generated"
                       : "Unknown"}
                   </span>
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* Player List */}
             <div className="space-y-3">
@@ -95,7 +109,9 @@ export function WaitingLobbyView({
               size="lg"
               effect="expand"
             >
-              {!lobbyConfig
+              {isGeneratingDeck
+                ? "Generating deck..."
+                : !lobbyConfig
                 ? "Waiting for host to configure..."
                 : canStart
                 ? "Start Game"

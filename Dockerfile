@@ -15,6 +15,9 @@ RUN npm install
 # Copy the rest of the application
 COPY . .
 
+# Create dist directory for partykit dev (it expects this even in dev mode)
+RUN mkdir -p dist
+
 # Expose Vite dev server and PartyKit server ports
 EXPOSE 5173 1999
 
