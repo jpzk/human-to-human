@@ -134,8 +134,7 @@ export function ResultsView({ matches, narrativeInsights, onContinue }: ResultsV
 
       {/* Narrative Story Section */}
       <div className="w-full px-6 py-4 border-t border-border flex-shrink-0 bg-muted/20">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-lg">✨</span>
+        <div className="mb-3">
           <h3 className="text-lg font-semibold text-foreground">The Story</h3>
         </div>
         
