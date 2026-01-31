@@ -1,0 +1,22 @@
+# Production Dockerfile
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production=false
+
+# Copy source code
+COPY . .
+
+# Build the frontend
+RUN npm run build
+
+# Expose PartyKit port
+EXPOSE 1999
+
+# Run PartyKit server in production mode
+CMD ["npx", "partykit", "dev", "--port", "1999"]

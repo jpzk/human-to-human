@@ -1,0 +1,49 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 159.69.188.230
+          username: root
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            set -e
+            
+            # Create directory if it doesn't exist
+            mkdir -p /root/h2h
+            
+            # Clone or pull the repository
+            if [ -d "/root/h2h/.git" ]; then
+              cd /root/h2h
+              git fetch origin
+              git reset --hard origin/main
+              git clean -fd
+            else
+              rm -rf /root/h2h
+              git clone https://github.com/${{ github.repository }}.git /root/h2h
+            fi
+            
+            cd /root/h2h
+            
+            # Stop existing container
+            docker compose -f docker-compose.prod.yml down || true
+            
+            # Build without cache and start
+            docker compose -f docker-compose.prod.yml build --no-cache
+            docker compose -f docker-compose.prod.yml up -d
+            
+            # Prune old images
+            docker image prune -f
+            
+            echo "Deployment complete!"

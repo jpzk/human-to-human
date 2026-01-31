@@ -1,0 +1,24 @@
+services:
+  h2h:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      no_cache: true
+    container_name: h2h
+    restart: unless-stopped
+    expose:
+      - "1999"
+    environment:
+      - NODE_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.h2h.rule=Host(`h2h.madewithtea.com`)"
+      - "traefik.http.routers.h2h.entrypoints=websecure"
+      - "traefik.http.routers.h2h.tls.certresolver=letsencrypt"
+      - "traefik.http.services.h2h.loadbalancer.server.port=1999"
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    external: true
