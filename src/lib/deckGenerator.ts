@@ -1,6 +1,6 @@
 import { Deck, getDecks } from "./decks";
 
-const MINIMAX_API_URL = "https://api.minimax.chat/v1/text/chatcompletion_v2";
+const MINIMAX_API_URL = "https://api.minimax.io/v1/text/chatcompletion_v2";
 
 interface MinimaxMessage {
   role: "system" | "user" | "assistant";

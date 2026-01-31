@@ -160,6 +160,11 @@ export type TTSResponseMessage = {
   error?: string;
 };
 
+export type NarrativeMessage = {
+  type: "NARRATIVE";
+  insights: string[];  // Array of narrative strings
+};
+
 export type ServerMessage =
   | SyncMessage
   | JoinMessage
@@ -173,7 +178,8 @@ export type ServerMessage =
   | QuestionAdvanceMessage
   | DeckGeneratingMessage
   | DeckReadyMessage
-  | TTSResponseMessage;
+  | TTSResponseMessage
+  | NarrativeMessage;
 
 // Type Guards (validators)
 const MAX_ID_LENGTH = 64;

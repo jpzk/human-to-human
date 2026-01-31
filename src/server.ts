@@ -17,10 +17,13 @@ import {
   type DeckGeneratingMessage,
   type DeckReadyMessage,
   type TTSResponseMessage,
+  type NarrativeMessage,
 } from "./types/messages";
 import { GamePhase, QuestionType, type LobbyConfig, type Question } from "./types/game";
 import { getDeck, generateDeck, deckToQuestions } from "./services/deckService";
 import { textToSpeech } from "./lib/tts";
+import { aggregateNarrativeData, type UserAnswerData, type AnswerWithMeta } from "./services/narrativeService";
+import { generateNarrative, generateFallbackNarrative, testMinimaxConnection } from "./lib/narrativeGenerator";
 
 // Name generation
 const ADJECTIVES = [
@@ -64,7 +67,7 @@ type AnswerValue =
 type UserState = {
   name: string;
   color: string;
-  answers: Map<string, AnswerValue>; // questionId → answer value
+  answers: Map<string, AnswerWithMeta>; // questionId → answer with metadata
 };
 
 // Abstracted question retrieval function - now uses DeckService
@@ -91,8 +94,23 @@ export default class GameServer implements Party.Server {
   private revealRequests = new Map<string, Set<string>>(); // requesterId → Set<targetIds>
   private lobbyConfig: LobbyConfig | null = null;
   private questions: Question[] = [];
+  private questionStartTimes = new Map<string, number>(); // questionId → timestamp when shown
+  private answerOrderCounters = new Map<string, number>(); // questionId → counter for answer order
+  private narrativeInsights: string[] | null = null; // Cached narrative insights
+  private narrativeGenerationPromise: Promise<void> | null = null; // Track ongoing narrative generation
 
-  constructor(readonly room: Party.Room) {}
+  constructor(readonly room: Party.Room) {
+    // Validate API key at startup (non-blocking warning)
+    const apiKey = process.env.MINIMAX_API_KEY;
+    if (!apiKey) {
+      console.warn("[Server] MINIMAX_API_KEY not set - narrative generation will use fallback");
+    } else {
+      // Test Minimax connection on startup (non-blocking)
+      testMinimaxConnection(apiKey).catch((error) => {
+        console.warn("[Server] Minimax connection test failed:", error);
+      });
+    }
+  }
 
   onConnect(connection: Party.Connection, _ctx: Party.ConnectionContext): void {
     // Assign random name and color
@@ -121,6 +139,33 @@ export default class GameServer implements Party.Server {
       for (const [qId] of u.answers) {
         if (!answeredBy[qId]) answeredBy[qId] = [];
         answeredBy[qId].push(u.name);
+      }
+    }
+
+    // If in RESULTS or REVEAL phase, send narrative if available or wait for generation
+    if (this.phase === GamePhase.RESULTS || this.phase === GamePhase.REVEAL) {
+      if (this.narrativeInsights) {
+        // Narrative already generated, send immediately
+        const narrativeMsg: NarrativeMessage = {
+          type: "NARRATIVE",
+          insights: this.narrativeInsights,
+        };
+        connection.send(JSON.stringify(narrativeMsg));
+      } else if (this.narrativeGenerationPromise) {
+        // Narrative is still being generated, wait for it
+        this.narrativeGenerationPromise
+          .then(() => {
+            if (this.narrativeInsights) {
+              const narrativeMsg: NarrativeMessage = {
+                type: "NARRATIVE",
+                insights: this.narrativeInsights,
+              };
+              connection.send(JSON.stringify(narrativeMsg));
+            }
+          })
+          .catch((error) => {
+            console.error("[Server] Failed to send narrative to late joiner:", error);
+          });
       }
     }
 
@@ -183,7 +228,21 @@ export default class GameServer implements Party.Server {
       // First answer wins - no changes allowed
       if (player.answers.has(payload.questionId)) return;
 
-      player.answers.set(payload.questionId, { type: "choice", answerId: payload.answerId });
+      const now = Date.now();
+      const questionStartTime = this.questionStartTimes.get(payload.questionId) || now;
+      const timeToAnswer = (now - questionStartTime) / 1000; // Convert to seconds
+      
+      // Increment answer order counter for this question
+      const currentOrder = this.answerOrderCounters.get(payload.questionId) || 0;
+      const answerOrder = currentOrder + 1;
+      this.answerOrderCounters.set(payload.questionId, answerOrder);
+
+      player.answers.set(payload.questionId, {
+        value: { type: "choice", answerId: payload.answerId },
+        timestamp: now,
+        timeToAnswer,
+        answerOrder,
+      });
 
       const event: PlayerAnsweredMessage = {
         type: "PLAYER_ANSWERED",
@@ -209,7 +268,21 @@ export default class GameServer implements Party.Server {
       // First answer wins - no changes allowed
       if (player.answers.has(payload.questionId)) return;
 
-      player.answers.set(payload.questionId, { type: "slider", value: payload.value });
+      const now = Date.now();
+      const questionStartTime = this.questionStartTimes.get(payload.questionId) || now;
+      const timeToAnswer = (now - questionStartTime) / 1000; // Convert to seconds
+      
+      // Increment answer order counter for this question
+      const currentOrder = this.answerOrderCounters.get(payload.questionId) || 0;
+      const answerOrder = currentOrder + 1;
+      this.answerOrderCounters.set(payload.questionId, answerOrder);
+
+      player.answers.set(payload.questionId, {
+        value: { type: "slider", value: payload.value },
+        timestamp: now,
+        timeToAnswer,
+        answerOrder,
+      });
 
       const event: PlayerAnsweredMessage = {
         type: "PLAYER_ANSWERED",
@@ -252,6 +325,17 @@ export default class GameServer implements Party.Server {
         if (connectedUsers.length < 2) return;
         // Ensure lobby is configured
         if (!this.lobbyConfig) return;
+        
+        // Clear any previous game state before starting new game
+        this.clearGameState();
+        
+        // Record start time for first question BEFORE phase change to prevent race condition
+        const firstQuestion = this.questions[0];
+        const questionStartTime = Date.now();
+        if (firstQuestion) {
+          this.questionStartTimes.set(firstQuestion.id, questionStartTime);
+          this.answerOrderCounters.set(firstQuestion.id, 0);
+        }
         
         this.phase = GamePhase.ANSWERING;
         this.currentQuestionIndex = 0;
@@ -323,7 +407,25 @@ export default class GameServer implements Party.Server {
     }
   }
 
+  private clearGameState(): void {
+    // Clear timing and answer tracking maps
+    this.questionStartTimes.clear();
+    this.answerOrderCounters.clear();
+    // Clear narrative state
+    this.narrativeInsights = null;
+    this.narrativeGenerationPromise = null;
+    // Clear user answers (but keep users for lobby)
+    for (const user of this.users.values()) {
+      user.answers.clear();
+    }
+    // Reset question index
+    this.currentQuestionIndex = 0;
+  }
+
   private async handleConfigureLobby(payload: { deck?: string; aiTheme?: string }): Promise<void> {
+    // Clear previous game state when configuring new lobby
+    this.clearGameState();
+    
     if (payload.aiTheme) {
       // Generate AI deck
       const generatingMsg: DeckGeneratingMessage = {
@@ -447,6 +549,13 @@ export default class GameServer implements Party.Server {
       return;
     }
 
+    // Record start time for the new question
+    const currentQuestion = this.questions[this.currentQuestionIndex];
+    if (currentQuestion) {
+      this.questionStartTimes.set(currentQuestion.id, Date.now());
+      this.answerOrderCounters.set(currentQuestion.id, 0);
+    }
+
     // Broadcast question advance
     const advanceMsg: QuestionAdvanceMessage = {
       type: "QUESTION_ADVANCE",
@@ -461,9 +570,12 @@ export default class GameServer implements Party.Server {
     let totalScore = 0;
     let questionCount = 0;
 
-    for (const [qId, answerA] of userA.answers) {
-      const answerB = userB.answers.get(qId);
-      if (!answerB) continue;
+    for (const [qId, answerMetaA] of userA.answers) {
+      const answerMetaB = userB.answers.get(qId);
+      if (!answerMetaB) continue;
+
+      const answerA = answerMetaA.value;
+      const answerB = answerMetaB.value;
 
       questionCount++;
 
@@ -514,6 +626,103 @@ export default class GameServer implements Party.Server {
     for (const connection of this.room.getConnections()) {
       this.sendResultsToConnection(connection);
     }
+
+    // Generate and send narrative (async, non-blocking)
+    this.generateAndSendNarrative();
+  }
+
+  private async generateAndSendNarrative(): Promise<void> {
+    // If already generating, don't start another
+    if (this.narrativeGenerationPromise) {
+      return;
+    }
+
+    this.narrativeGenerationPromise = (async () => {
+      try {
+        // Validate we have enough data
+        if (this.users.size < 2) {
+          this.narrativeInsights = [];
+          return;
+        }
+        
+        if (this.questions.length === 0) {
+          this.narrativeInsights = [];
+          return;
+        }
+        
+        // Convert users to UserAnswerData format
+        const userAnswerData: UserAnswerData[] = [];
+        for (const [userId, userState] of this.users) {
+          userAnswerData.push({
+            userId,
+            name: userState.name,
+            answers: userState.answers,
+          });
+        }
+
+        // Aggregate narrative insights
+        const narrativeData = aggregateNarrativeData(userAnswerData, this.questions);
+        
+        // Validate narrative data
+        if (narrativeData.totalPlayers < 2 || narrativeData.totalQuestions === 0) {
+          this.narrativeInsights = [];
+          return;
+        }
+
+        // Generate narrative text using LLM
+        let insights: string[];
+        try {
+          insights = await generateNarrative(narrativeData);
+        } catch (llmError) {
+          console.error("[Server] LLM API failed, using fallback narrative:", llmError);
+          // Generate fallback narrative instead of empty
+          insights = generateFallbackNarrative(narrativeData);
+        }
+
+        // Cache insights for late joiners
+        this.narrativeInsights = insights;
+
+        // Send narrative to all connections
+        const narrativeMsg: NarrativeMessage = {
+          type: "NARRATIVE",
+          insights,
+        };
+        this.room.broadcast(JSON.stringify(narrativeMsg));
+      } catch (error) {
+        console.error("[Server] Narrative generation failed:", error instanceof Error ? error.message : String(error));
+        
+        // Try to generate fallback narrative even on complete failure
+        try {
+          const fallback = generateFallbackNarrative(aggregateNarrativeData(
+            Array.from(this.users.entries()).map(([userId, userState]) => ({
+              userId,
+              name: userState.name,
+              answers: userState.answers,
+            })),
+            this.questions
+          ));
+          this.narrativeInsights = fallback;
+          const fallbackMsg: NarrativeMessage = {
+            type: "NARRATIVE",
+            insights: fallback,
+          };
+          this.room.broadcast(JSON.stringify(fallbackMsg));
+        } catch (fallbackError) {
+          // Last resort: send empty insights so UI knows to stop loading
+          this.narrativeInsights = [];
+          const emptyMsg: NarrativeMessage = {
+            type: "NARRATIVE",
+            insights: [],
+          };
+          this.room.broadcast(JSON.stringify(emptyMsg));
+        }
+      } finally {
+        // Clear promise so late joiners know generation is complete
+        this.narrativeGenerationPromise = null;
+      }
+    })();
+
+    return this.narrativeGenerationPromise;
   }
 
   private sendResultsToConnection(connection: Party.Connection): void {
@@ -586,9 +795,7 @@ export default class GameServer implements Party.Server {
       // Send response only to the requesting client
       sender.send(JSON.stringify(response));
     } catch (error) {
-      console.error("[Server TTS] ✗ Error occurred:", error);
-      console.error("[Server TTS] Error type:", error instanceof Error ? error.constructor.name : typeof error);
-      console.error("[Server TTS] Error message:", error instanceof Error ? error.message : String(error));
+      console.error("[Server TTS] Error:", error instanceof Error ? error.message : String(error));
       
       const errorResponse: TTSResponseMessage = {
         type: "TTS_RESPONSE",

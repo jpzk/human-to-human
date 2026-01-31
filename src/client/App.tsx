@@ -101,6 +101,7 @@ export default function App() {
     revealedUsers,
     lobbyConfig,
     questions,
+    narrativeInsights,
   } = gameState;
 
   const totalPlayers = getTotalPlayers(users);
@@ -307,7 +308,7 @@ export default function App() {
             </>
           )}
           {phase === GamePhase.RESULTS && (
-            <ResultsView matches={results} onContinue={handleContinueToReveal} />
+            <ResultsView matches={results} narrativeInsights={narrativeInsights} onContinue={handleContinueToReveal} />
           )}
           {phase === GamePhase.REVEAL && (
             <RevealView

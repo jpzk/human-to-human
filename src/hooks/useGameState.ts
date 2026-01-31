@@ -10,6 +10,7 @@ import type {
   QuestionAdvanceMessage,
   DeckGeneratingMessage,
   DeckReadyMessage,
+  NarrativeMessage,
 } from "@/types/messages";
 
 type User = { 
@@ -53,6 +54,7 @@ export function useGameState() {
   const [lobbyConfig, setLobbyConfig] = useState<LobbyConfig | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isGeneratingDeck, setIsGeneratingDeck] = useState(false);
+  const [narrativeInsights, setNarrativeInsights] = useState<string[]>([]);
 
   const handleMessage = useCallback((msg: ServerMessage) => {
     if (msg.type === "sync") {
@@ -77,6 +79,7 @@ export function useGameState() {
       setResults([]);
       setRevealedUsers(new Map());
       setIsGeneratingDeck(false);
+      setNarrativeInsights([]);
       return;
     }
 
@@ -107,6 +110,19 @@ export function useGameState() {
     if (msg.type === "RESULTS") {
       const resultsMsg = msg as ResultsMessage;
       setResults(resultsMsg.matches ?? []);
+      return;
+    }
+
+    if (msg.type === "NARRATIVE") {
+      const narrativeMsg = msg as NarrativeMessage;
+      const insights = narrativeMsg.insights ?? [];
+      console.log("[useGameState] Narrative received:", insights.length, "insights");
+      if (insights.length > 0) {
+        console.log("[useGameState] Narrative insights:", insights);
+      } else {
+        console.warn("[useGameState] Empty narrative insights received");
+      }
+      setNarrativeInsights(insights);
       return;
     }
 
@@ -172,6 +188,7 @@ export function useGameState() {
     lobbyConfig,
     questions,
     isGeneratingDeck,
+    narrativeInsights,
     handleMessage,
   };
 }

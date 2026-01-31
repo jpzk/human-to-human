@@ -1,8 +1,8 @@
 # Development Dockerfile with hot reloading support
-FROM node:20-alpine
+FROM node:20-slim
 
 # Install additional tools needed for development
-RUN apk add --no-cache git
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 

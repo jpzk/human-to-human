@@ -1,12 +1,77 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import type { CompatibilityScore } from "@/types/messages";
+import { useTypewriter } from "@/hooks/useTypewriter";
 
 type ResultsViewProps = {
   matches: CompatibilityScore[];
+  narrativeInsights: string[];
   onContinue: () => void;
 };
 
-export function ResultsView({ matches, onContinue }: ResultsViewProps) {
+// Constants for animation timing
+const TYPEWRITER_SPEED_MS = 40; // Milliseconds per character
+const INSIGHT_PAUSE_MS = 1000; // Pause between insights in milliseconds
+
+export function ResultsView({ matches, narrativeInsights, onContinue }: ResultsViewProps) {
+  const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
+  const [completedInsights, setCompletedInsights] = useState<Set<number>>(new Set());
+  const [narrativeError, setNarrativeError] = useState(false);
+  const [isNarrativeLoading, setIsNarrativeLoading] = useState(true);
+  const [animationSkipped, setAnimationSkipped] = useState(false);
+
+  // Track narrative loading/error states
+  useEffect(() => {
+    if (narrativeInsights.length > 0) {
+      setIsNarrativeLoading(false);
+      setNarrativeError(false);
+      console.log("[ResultsView] Narrative received:", narrativeInsights.length, "insights");
+    } else {
+      // If we're in RESULTS phase but no insights after a delay, might be error
+      const timeout = setTimeout(() => {
+        if (narrativeInsights.length === 0) {
+          console.warn("[ResultsView] Narrative not received after delay - may have failed");
+          // Don't set error immediately, might still be loading
+        }
+      }, 5000); // 5 second timeout
+      return () => clearTimeout(timeout);
+    }
+  }, [narrativeInsights]);
+
+  const currentInsight = narrativeInsights[currentInsightIndex] || "";
+  const displayedText = useTypewriter({
+    text: currentInsight,
+    speed: TYPEWRITER_SPEED_MS,
+    onComplete: () => {
+      // Mark current insight as completed
+      setCompletedInsights((prev) => new Set(prev).add(currentInsightIndex));
+      
+      // Move to next insight after a short pause
+      if (currentInsightIndex < narrativeInsights.length - 1) {
+        setTimeout(() => {
+          setCurrentInsightIndex((prev) => prev + 1);
+        }, INSIGHT_PAUSE_MS);
+      }
+    },
+  });
+
+  // Reset when narrativeInsights change
+  useEffect(() => {
+    setCurrentInsightIndex(0);
+    setCompletedInsights(new Set());
+    setIsNarrativeLoading(true);
+    setNarrativeError(false);
+    setAnimationSkipped(false);
+  }, [narrativeInsights]);
+
+  // Skip animation - show all insights immediately
+  const handleSkipAnimation = () => {
+    setAnimationSkipped(true);
+    setCurrentInsightIndex(narrativeInsights.length);
+    const allCompleted = new Set(narrativeInsights.map((_, i) => i));
+    setCompletedInsights(allCompleted);
+  };
+
   const formatScore = (score: number): string => {
     return `${Math.round(score * 100)}%`;
   };
@@ -65,6 +130,81 @@ export function ResultsView({ matches, onContinue }: ResultsViewProps) {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Narrative Story Section */}
+      <div className="w-full px-6 py-4 border-t border-border flex-shrink-0 bg-muted/20">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-lg">✨</span>
+          <h3 className="text-lg font-semibold text-foreground">The Story</h3>
+        </div>
+        
+        {isNarrativeLoading && narrativeInsights.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 space-y-3">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-muted-foreground">Crafting your story...</p>
+          </div>
+        ) : narrativeError ? (
+          <div className="text-sm text-muted-foreground py-4 text-center">
+            <p>Unable to generate story at this time.</p>
+          </div>
+        ) : narrativeInsights.length > 0 ? (
+          <div className="space-y-3">
+            {!animationSkipped && (
+              <button
+                onClick={handleSkipAnimation}
+                className="text-xs text-muted-foreground hover:text-foreground underline mb-2"
+              >
+                Skip animation
+              </button>
+            )}
+            <div className="space-y-3 max-h-48 overflow-y-auto">
+              {animationSkipped ? (
+                // Show all insights immediately when skipped
+                narrativeInsights.map((insight, index) => (
+                  <p
+                    key={index}
+                    className="text-sm text-muted-foreground leading-relaxed"
+                  >
+                    {insight}
+                  </p>
+                ))
+              ) : (
+                // Show typewriter animation
+                narrativeInsights.map((insight, index) => {
+                  const isCurrent = index === currentInsightIndex;
+                  const isCompleted = completedInsights.has(index);
+                  
+                  if (isCompleted) {
+                    // Show completed insight
+                    return (
+                      <p
+                        key={index}
+                        className="text-sm text-muted-foreground leading-relaxed"
+                      >
+                        {insight}
+                      </p>
+                    );
+                  } else if (isCurrent) {
+                    // Show currently typing insight
+                    return (
+                      <p
+                        key={index}
+                        className="text-sm text-muted-foreground leading-relaxed"
+                      >
+                        {displayedText}
+                        <span className="animate-pulse ml-1">|</span>
+                      </p>
+                    );
+                  } else {
+                    // Future insight, don't show yet
+                    return null;
+                  }
+                })
+              )}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {/* Button */}
