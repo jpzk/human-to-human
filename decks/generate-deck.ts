@@ -21,6 +21,8 @@ import * as fs from "fs";
 import * as path from "path";
 import { fileURLToPath } from "url";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 // Load environment variables from .env file
 function loadEnv() {
   // Try multiple possible locations for .env
@@ -57,11 +59,8 @@ loadEnv();
 const MINIMAX_API_URL = "https://api.minimax.io/v1/text/chatcompletion_v2";
 const HUME_API_URL = "https://api.hume.ai/v0/tts";
 
-// Voice configuration for narrator
-const NARRATOR_VOICE = {
-  name: "Dacher",  // Friendly, warm narrator voice from Hume AI
-  provider: "HUME_AI",
-};
+// Voice ID for narrator (Hume AI custom voice)
+const NARRATOR_VOICE_ID = "ee96fb5f-ec1a-4f41-a9ba-6d119e64c8fd";
 
 // Types
 interface Card {
@@ -69,7 +68,6 @@ interface Card {
   question: string;
   type: "buttons" | "slider";
   answers: string[];
-  hideCursors?: boolean;
   audioFile?: string;
 }
 
@@ -121,88 +119,187 @@ function parseArgs(): { theme: string; questions: number } {
   return { theme, questions };
 }
 
-// Generate deck using Minimax API
-async function generateDeckContent(theme: string, numQuestions: number): Promise<GeneratedDeck> {
+// Extract JSON from potentially markdown-wrapped response
+function extractJson(content: string): string {
+  // Remove markdown code blocks if present
+  const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (jsonMatch) {
+    return jsonMatch[1].trim();
+  }
+  return content.trim();
+}
+
+// Call Minimax API with a prompt, with retry on parse failure
+async function callMinimax(systemPrompt: string, userPrompt: string, maxRetries = 2): Promise<string> {
   const apiKey = process.env.MINIMAX_API_KEY;
   if (!apiKey) {
     throw new Error("MINIMAX_API_KEY not set in environment");
   }
 
-  const systemPrompt = `You are a deck generator for a social connection game. Generate question decks that help people get to know each other better.
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const response = await fetch(MINIMAX_API_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "MiniMax-Text-01",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        temperature: 0.9,
+      }),
+    });
 
-Each deck must follow this exact JSON format:
-{
-  "deck_name": "Deck Name Here",
-  "introduction": "A warm, inviting introduction that the narrator will read to set the mood for this deck. 2-3 sentences that explain what players will explore together.",
-  "cards": [
-    {
-      "card_name": "short_snake_case_name",
-      "question": "The question text?",
-      "type": "buttons",
-      "answers": ["Answer 1", "Answer 2", "Answer 3", "Answer 4"]
-    },
-    {
-      "card_name": "another_name", 
-      "question": "Another question?",
-      "type": "slider",
-      "answers": ["Left extreme", "Right extreme"]
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Minimax API error (${response.status}): ${errorText}`);
     }
-  ]
+
+    const data: MinimaxResponse = await response.json();
+
+    if (!data.choices || data.choices.length === 0) {
+      throw new Error("No response from Minimax API");
+    }
+
+    const content = extractJson(data.choices[0].message.content);
+    
+    // Validate it's parseable JSON
+    try {
+      JSON.parse(content);
+      return content;
+    } catch {
+      if (attempt < maxRetries) {
+        console.log(`   ⚠️  Invalid JSON, retrying (${attempt + 1}/${maxRetries})...`);
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } else {
+        throw new Error(`Failed to get valid JSON after ${maxRetries + 1} attempts: ${content}`);
+      }
+    }
+  }
+
+  throw new Error("Unexpected error in callMinimax");
+}
+
+// Generate deck intro (name and introduction)
+async function generateDeckIntro(theme: string): Promise<{ deck_name: string; introduction: string }> {
+  const systemPrompt = `You generate deck metadata for a social connection game.
+Return ONLY valid JSON with exactly these fields:
+{
+  "deck_name": "A catchy deck name",
+  "introduction": "A warm, inviting introduction (2-3 sentences) that the narrator will read to set the mood."
+}
+No markdown, no explanation, just JSON.`;
+
+  const content = await callMinimax(systemPrompt, `Theme: "${theme}"`);
+  
+  try {
+    return JSON.parse(content);
+  } catch {
+    throw new Error(`Failed to parse deck intro JSON: ${content}`);
+  }
+}
+
+// Generate a single question
+async function generateQuestion(
+  theme: string,
+  questionNumber: number,
+  totalQuestions: number,
+  previousQuestions: string[]
+): Promise<Card> {
+  // Determine intimacy level based on position
+  const position = questionNumber / totalQuestions;
+  let intimacyLevel: string;
+  if (position <= 0.33) {
+    intimacyLevel = "LIGHT - casual, easy to answer (hobbies, preferences, daily life)";
+  } else if (position <= 0.66) {
+    intimacyLevel = "MEDIUM - values, dreams, aspirations, relationships";
+  } else {
+    intimacyLevel = "DEEP - vulnerable, fears, regrets, emotional truths, personal struggles";
+  }
+
+  // Determine if this should be a slider (roughly 30-40% sliders)
+  const shouldBeSlider = Math.random() < 0.35;
+  const questionType = shouldBeSlider ? "slider" : "buttons";
+  
+  const previousList = previousQuestions.length > 0 
+    ? `\nPrevious questions (DO NOT repeat similar topics):\n${previousQuestions.map((q, i) => `${i + 1}. ${q}`).join("\n")}`
+    : "";
+
+  const systemPrompt = `You generate questions for a social connection game about "${theme}".
+A warm, playful narrator reads these aloud to players.
+
+Return ONLY valid JSON with exactly these fields:
+{
+  "card_name": "short_snake_case_name",
+  "question": "The question text?",
+  "answers": ["answer1", "answer2", ...]
 }
 
 Rules:
-- Each deck has exactly ${numQuestions} cards
-- "buttons" type cards have exactly 4 answers
-- "slider" type cards have exactly 2 answers (representing opposite ends of a spectrum)
-- Mix button and slider types (roughly 60-70% buttons, 30-40% sliders)
-- card_name should be snake_case and descriptive
-- CRITICAL: Order questions from LEAST intimate to MOST intimate:
-  * First third: Light, casual, easy to answer (hobbies, preferences, daily life)
-  * Middle third: Medium depth (values, dreams, aspirations, relationships)  
-  * Final third: Deep and vulnerable (fears, regrets, emotional truths, personal struggles)
-- The last 2-3 questions should include "hideCursors": true for privacy on sensitive questions
-- The introduction should be warm and set expectations for the journey ahead
+- Question type: ${questionType}
+- ${questionType === "buttons" ? "Provide exactly 4 answers" : "Provide exactly 2 answers (opposite ends of a spectrum)"}
+- Intimacy level: ${intimacyLevel}
+- card_name must be snake_case and descriptive
+- Add brief narrator personality: a short lead-in, observation, or playful aside (e.g. "Alright, here's a fun one..." or "This one might surprise you...")
+- Keep it concise - one short sentence of personality + the core question (max 25 words total)
+- Make the question thought-provoking and conversation-starting
+${previousList}
 
-Return ONLY valid JSON, no markdown or explanation.`;
+No markdown, no explanation, just JSON.`;
 
-  console.log(`\n📝 Generating deck content for theme: "${theme}" with ${numQuestions} questions...`);
-
-  const response = await fetch(MINIMAX_API_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "MiniMax-Text-01",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `Generate a deck with the theme: "${theme}"` },
-      ],
-      temperature: 0.9,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Minimax API error (${response.status}): ${errorText}`);
-  }
-
-  const data: MinimaxResponse = await response.json();
-
-  if (!data.choices || data.choices.length === 0) {
-    throw new Error("No response from Minimax API");
-  }
-
-  const content = data.choices[0].message.content;
+  const content = await callMinimax(
+    systemPrompt,
+    `Generate question ${questionNumber} of ${totalQuestions} for the "${theme}" deck.`
+  );
 
   try {
-    const deck: GeneratedDeck = JSON.parse(content);
-    console.log(`✅ Generated deck: "${deck.deck_name}" with ${deck.cards.length} questions`);
-    return deck;
+    const parsed = JSON.parse(content);
+    return {
+      card_name: parsed.card_name,
+      question: parsed.question,
+      type: questionType,
+      answers: parsed.answers,
+    };
   } catch {
-    throw new Error(`Failed to parse deck JSON: ${content}`);
+    throw new Error(`Failed to parse question JSON: ${content}`);
   }
+}
+
+// Generate deck using Minimax API (question by question)
+async function generateDeckContent(theme: string, numQuestions: number): Promise<GeneratedDeck> {
+  console.log(`\n📝 Generating deck content for theme: "${theme}" with ${numQuestions} questions...`);
+
+  // Step 1: Generate deck name and introduction
+  console.log("   Generating deck intro...");
+  const intro = await generateDeckIntro(theme);
+  console.log(`   ✅ Deck name: "${intro.deck_name}"`);
+
+  // Step 2: Generate each question
+  const cards: Card[] = [];
+  const previousQuestions: string[] = [];
+
+  for (let i = 1; i <= numQuestions; i++) {
+    console.log(`   Generating question ${i}/${numQuestions}...`);
+    const card = await generateQuestion(theme, i, numQuestions, previousQuestions);
+    cards.push(card);
+    previousQuestions.push(card.question);
+    console.log(`   ✅ ${card.card_name} (${card.type})`);
+    
+    // Small delay to avoid rate limiting
+    await new Promise(resolve => setTimeout(resolve, 300));
+  }
+
+  const deck: GeneratedDeck = {
+    deck_name: intro.deck_name,
+    introduction: intro.introduction,
+    cards,
+  };
+
+  console.log(`\n✅ Generated deck: "${deck.deck_name}" with ${deck.cards.length} questions`);
+  return deck;
 }
 
 // Generate TTS audio using Hume AI
@@ -219,11 +316,12 @@ async function generateAudio(text: string, outputPath: string): Promise<void> {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      version: "2",
       utterances: [
         {
           text,
-          voice: NARRATOR_VOICE,
+          voice: {
+            id: NARRATOR_VOICE_ID,
+          },
         },
       ],
     }),
@@ -297,7 +395,7 @@ async function main() {
 
   // Step 3: Generate introduction audio
   console.log("\n🎙️  Generating audio files...");
-  console.log("   [1/${questions + 1}] Introduction...");
+  console.log(`   [1/${questions + 1}] Introduction...`);
   
   const introAudioFile = "intro.mp3";
   await generateAudio(deck.introduction, path.join(outputDir, introAudioFile));
