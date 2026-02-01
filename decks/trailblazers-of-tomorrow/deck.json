@@ -1,0 +1,121 @@
+{
+  "deck_name": "Trailblazers of Tomorrow",
+  "introduction": "Step into the world of visionary thinkers and daring pioneers who dared to dream beyond the ordinary. Uncover the stories of those who forged new paths and shaped the future with their relentless spirit and innovative ideas.",
+  "cards": [
+    {
+      "card_name": "ideal_workplace",
+      "question": "If you were a founder, what would your ideal work environment look like?",
+      "type": "buttons",
+      "answers": [
+        "A cozy home office",
+        "A bustling co-working space",
+        "A beachside cabana",
+        "A high-rise corner office"
+      ],
+      "audioFile": "q1_ideal_workplace.mp3"
+    },
+    {
+      "card_name": "early_bird_vs_night_owl",
+      "question": "Would you rather start your workday at sunrise or burn the midnight oil?",
+      "type": "slider",
+      "answers": [
+        "Early bird",
+        "Night owl"
+      ],
+      "audioFile": "q2_early_bird_vs_night_owl.mp3"
+    },
+    {
+      "card_name": "founder_commute_preference",
+      "question": "Alright, founders, how would you prefer to start your day?",
+      "type": "buttons",
+      "answers": [
+        "A brisk walk to the office",
+        "A quick bike ride",
+        "A scenic drive",
+        "A cozy work-from-home setup"
+      ],
+      "audioFile": "q3_founder_commute_preference.mp3"
+    },
+    {
+      "card_name": "big_vision_vs_early_profit",
+      "question": "Alright, founders - do you dream of changing the world or making your first million?",
+      "type": "slider",
+      "answers": [
+        "Changing the world",
+        "Making my first million"
+      ],
+      "audioFile": "q4_big_vision_vs_early_profit.mp3"
+    },
+    {
+      "card_name": "founder_motivation",
+      "question": "What really drives you as a founder?",
+      "type": "buttons",
+      "answers": [
+        "Creating something new",
+        "Solving a big problem",
+        "Building a legacy",
+        "Achieving personal freedom"
+      ],
+      "audioFile": "q5_founder_motivation.mp3"
+    },
+    {
+      "card_name": "founder_motivation_source",
+      "question": "What fuels your passion as a founder?",
+      "type": "buttons",
+      "answers": [
+        "Creating something new",
+        "Solving a problem",
+        "Building a legacy",
+        "Achieving personal freedom"
+      ],
+      "audioFile": "q6_founder_motivation_source.mp3"
+    },
+    {
+      "card_name": "founder_fear",
+      "question": "What's your biggest fear about being a founder?",
+      "type": "buttons",
+      "answers": [
+        "Failing and letting people down",
+        "Losing work-life balance",
+        "Running out of money",
+        "Not making a meaningful impact"
+      ],
+      "audioFile": "q7_founder_fear.mp3"
+    },
+    {
+      "card_name": "entrepreneurial_sacrifice",
+      "question": "This one might surprise you... Would you sacrifice personal happiness for startup success?",
+      "type": "slider",
+      "answers": [
+        "I'd give up anything",
+        "Happiness comes first"
+      ],
+      "audioFile": "q8_entrepreneurial_sacrifice.mp3"
+    },
+    {
+      "card_name": "founder_second_guessing",
+      "question": "Ever second-guess your decision to become a founder? Tell us why.",
+      "type": "buttons",
+      "answers": [
+        "Yes, I often question my path",
+        "Occasionally, but I push through",
+        "Rarely, I'm confident in my choice",
+        "Never, I know this is my calling"
+      ],
+      "audioFile": "q9_founder_second_guessing.mp3"
+    },
+    {
+      "card_name": "regret_of_choice",
+      "question": "Alright, here's a deep one... If you could go back, would you still choose the founder's path?",
+      "type": "buttons",
+      "answers": [
+        "Absolutely, without a doubt",
+        "Probably, but with some changes",
+        "Not sure, it's been tough",
+        "No, I miss my old life"
+      ],
+      "audioFile": "q10_regret_of_choice.mp3"
+    }
+  ],
+  "introAudioFile": "intro.mp3"
+}

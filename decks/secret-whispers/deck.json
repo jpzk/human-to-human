@@ -1,0 +1,117 @@
+{
+  "deck_name": "Secret Whispers",
+  "introduction": "Step into a world where hidden desires and stolen moments reign. Unravel the tangled web of connections and explore the allure of the forbidden. Can you keep a secret?",
+  "cards": [
+    {
+      "card_name": "work_vs_play",
+      "question": "Would your perfect date involve a high-stakes work event or a lazy day at the park?",
+      "type": "slider",
+      "answers": [
+        "Work event",
+        "Park day"
+      ],
+      "audioFile": "q1_work_vs_play.mp3"
+    },
+    {
+      "card_name": "work_vs_play_affair",
+      "question": "Would your ideal affair be a thrilling secret rendezvous or a casual, spontaneous meetup?",
+      "type": "slider",
+      "answers": [
+        "Secret rendezvous",
+        "Casual meetup"
+      ],
+      "audioFile": "q2_work_vs_play_affair.mp3"
+    },
+    {
+      "card_name": "ideal_affair_location",
+      "question": "Alright, let's get creative... Where would your ideal affair take place?",
+      "type": "buttons",
+      "answers": [
+        "A cozy cabin in the mountains",
+        "A bustling city rooftop bar",
+        "A quiet beach at sunset",
+        "A charming European café"
+      ],
+      "audioFile": "q3_ideal_affair_location.mp3"
+    },
+    {
+      "card_name": "secret_affair_location",
+      "question": "Alright, here's a fun one... Where's the most unexpected place you'd have an affair?",
+      "type": "buttons",
+      "answers": [
+        "In a library",
+        "On a train",
+        "At a family reunion",
+        "In a museum"
+      ],
+      "audioFile": "q4_secret_affair_location.mp3"
+    },
+    {
+      "card_name": "affair_revelation",
+      "question": "Would your ideal affair end with a dramatic revelation or a quiet, mutual understanding?",
+      "type": "slider",
+      "answers": [
+        "Dramatic revelation",
+        "Quiet understanding"
+      ],
+      "audioFile": "q5_affair_revelation.mp3"
+    },
+    {
+      "card_name": "intimacy_vs_excitement",
+      "question": "Would your ideal affair prioritize deep emotional connection or exhilarating new experiences?",
+      "type": "slider",
+      "answers": [
+        "Deep emotional connection",
+        "Exhilarating new experiences"
+      ],
+      "audioFile": "q6_intimacy_vs_excitement.mp3"
+    },
+    {
+      "card_name": "emotional_vs_exhilarating_affair",
+      "question": "Would your ideal affair focus on an intense emotional connection or a series of exciting, unpredictable moments?",
+      "type": "slider",
+      "answers": [
+        "Emotional Connection",
+        "Exciting Unpredictability"
+      ],
+      "audioFile": "q7_emotional_vs_exhilarating_affair.mp3"
+    },
+    {
+      "card_name": "emotional_vs_exciting_affair",
+      "question": "Would you rather have an affair that’s deeply emotional or one full of excitement and spontaneity?",
+      "type": "buttons",
+      "answers": [
+        "Deep emotional connection",
+        "Excitement and spontaneity",
+        "A mix of both",
+        "Neither, I value loyalty"
+      ],
+      "audioFile": "q8_emotional_vs_exciting_affair.mp3"
+    },
+    {
+      "card_name": "regret_or_remember",
+      "question": "Would your ideal affair be something you regret or cherish as a fond memory?",
+      "type": "buttons",
+      "answers": [
+        "Definitely regret",
+        "Cherish as a fond memory",
+        "A mix of both",
+        "Hard to say"
+      ],
+      "audioFile": "q9_regret_or_remember.mp3"
+    },
+    {
+      "card_name": "regret_or_cherish_affair",
+      "question": "Alright, time for some honesty... Would your ideal affair be something you regret or cherish as a fond memory?",
+      "type": "buttons",
+      "answers": [
+        "Regret deeply",
+        "Cherish fondly",
+        "Depends on the outcome",
+        "Hard to say"
+      ],
+      "audioFile": "q10_regret_or_cherish_affair.mp3"
+    }
+  ],
+  "introAudioFile": "intro.mp3"
+}

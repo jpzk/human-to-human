@@ -1,0 +1,121 @@
+{
+  "deck_name": "Journey of Love and Unity",
+  "introduction": "Welcome to a celebration of love, commitment, and the beautiful journey of marriage. Let's explore the stories, challenges, and joys that come with building a life together.",
+  "cards": [
+    {
+      "card_name": "romance_vs_practicality",
+      "question": "Is your ideal marriage more about grand romantic gestures or practical everyday compatibility?",
+      "type": "slider",
+      "answers": [
+        "All about the romance",
+        "Totally practical"
+      ],
+      "audioFile": "q1_romance_vs_practicality.mp3"
+    },
+    {
+      "card_name": "ideal_date_night",
+      "question": "Alright, let's dream a little... What's your ideal marriage date night activity?",
+      "type": "buttons",
+      "answers": [
+        "Cooking a meal together",
+        "Watching a movie at home",
+        "Exploring a new city",
+        "Stargazing in the countryside"
+      ],
+      "audioFile": "q2_ideal_date_night.mp3"
+    },
+    {
+      "card_name": "marriage_household_chores",
+      "question": "Who's doing the dishes tonight? How do you and your partner split household chores?",
+      "type": "buttons",
+      "answers": [
+        "We split them evenly",
+        "We have assigned chores",
+        "It depends on the day",
+        "We hire help"
+      ],
+      "audioFile": "q3_marriage_household_chores.mp3"
+    },
+    {
+      "card_name": "marriage_role_models",
+      "question": "Which famous couple do you and your partner aspire to emulate and why?",
+      "type": "buttons",
+      "answers": [
+        "The Obamas - strong partnership and shared values",
+        "The Duke and Duchess of Cambridge - grace and commitment",
+        "Beyoncé and Jay-Z - overcoming challenges together",
+        "John Legend and Chrissy Teigen - humor and mutual support"
+      ],
+      "audioFile": "q4_marriage_role_models.mp3"
+    },
+    {
+      "card_name": "marriage_dream_location",
+      "question": "Alright, let's imagine... Where's the most romantic place you'd love to grow old with your partner?",
+      "type": "buttons",
+      "answers": [
+        "On a beach house by the sea",
+        "In a cozy cabin in the mountains",
+        "In a bustling city full of life",
+        "In a quiet countryside cottage"
+      ],
+      "audioFile": "q5_marriage_dream_location.mp3"
+    },
+    {
+      "card_name": "marriage_love_language",
+      "question": "Let's swap secrets... What's your primary love language in marriage?",
+      "type": "buttons",
+      "answers": [
+        "Words of affirmation",
+        "Quality time",
+        "Receiving gifts",
+        "Acts of service"
+      ],
+      "audioFile": "q6_marriage_love_language.mp3"
+    },
+    {
+      "card_name": "marriage_regret",
+      "question": "What's one thing you wish you had done differently in your marriage journey?",
+      "type": "buttons",
+      "answers": [
+        "Rushed into marriage too quickly",
+        "Not stood up for myself enough",
+        "Let conflicts fester unresolved",
+        "Taken the relationship for granted"
+      ],
+      "audioFile": "q7_marriage_regret.mp3"
+    },
+    {
+      "card_name": "marriage_openness_vs_independence",
+      "question": "Is your ideal marriage more about complete openness or maintaining some independence?",
+      "type": "slider",
+      "answers": [
+        "Complete openness",
+        "Some independence"
+      ],
+      "audioFile": "q8_marriage_openness_vs_independence.mp3"
+    },
+    {
+      "card_name": "marriage_toughest_struggle",
+      "question": "What's been the biggest emotional struggle in your marriage and how have you navigated it?",
+      "type": "buttons",
+      "answers": [
+        "Communication issues",
+        "Financial stress",
+        "Family conflicts",
+        "Different priorities"
+      ],
+      "audioFile": "q9_marriage_toughest_struggle.mp3"
+    },
+    {
+      "card_name": "marriage_deepest_fear",
+      "question": "On the spectrum of fear, is your deepest marriage fear more about growing apart or feeling trapped?",
+      "type": "slider",
+      "answers": [
+        "Growing apart",
+        "Feeling trapped"
+      ],
+      "audioFile": "q10_marriage_deepest_fear.mp3"
+    }
+  ],
+  "introAudioFile": "intro.mp3"
+}
