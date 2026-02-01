@@ -1,0 +1,6 @@
+# Ignore generated deck folders (contain large audio files)
+# Keep only the generator script
+*/
+!.gitignore
+!generate-deck.ts
+!README.md
