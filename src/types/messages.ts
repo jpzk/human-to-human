@@ -134,6 +134,7 @@ export type CompatibilityScore = {
   anonymousName: string;
   score: number; // 0.0 to 1.0
   rank: number; // 1, 2, 3...
+  connectionReason?: string; // AI-generated reason (max 5 words)
 };
 
 export type ResultsMessage = {

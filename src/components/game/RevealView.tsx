@@ -69,7 +69,7 @@ export function RevealView({
               return (
                 <div
                   key={match.userId}
-                  className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
+                  className="flex items-center justify-between p-4 border border-border rounded-lg"
                 >
                   <div className="flex items-center gap-4 flex-1">
                     <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary font-bold text-lg">
@@ -100,6 +100,11 @@ export function RevealView({
                           <div className="text-sm text-muted-foreground">
                             {formatScore(match.score)} match
                           </div>
+                          {match.connectionReason && (
+                            <div className="text-xs text-primary italic mt-1">
+                              {match.connectionReason}
+                            </div>
+                          )}
                         </>
                       )}
                     </div>

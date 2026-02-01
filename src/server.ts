@@ -36,6 +36,7 @@ import { getDeck, generateDeck, deckToQuestions } from "./services/deckService";
 import { textToSpeech } from "./lib/tts";
 import { aggregateNarrativeData, type UserAnswerData, type AnswerWithMeta } from "./services/narrativeService";
 import { generateNarrative, generateFallbackNarrative, testMinimaxConnection } from "./lib/narrativeGenerator";
+import { generateConnectionInsights, generateFallbackConnectionInsight } from "./lib/connectionInsightGenerator";
 
 // Name generation
 const ADJECTIVES = [
@@ -114,6 +115,8 @@ export default class GameServer implements Party.Server {
   private narrativeInsights: string[] | null = null; // Cached narrative insights
   private narrativeGenerationPromise: Promise<void> | null = null; // Track ongoing narrative generation
   private resultsReadyPlayers = new Set<string>(); // Track who's ready on results screen
+  private connectionInsights: Map<string, Map<string, string>> = new Map(); // userId → (otherUserId → reason)
+  private connectionInsightsGenerationPromise: Promise<void> | null = null; // Track ongoing connection insights generation
   private nudgeCooldowns = new Map<string, Map<string, number>>(); // senderId → (targetId → timestamp)
   private hostId: string | null = null; // Track the host (initiator who configured the lobby)
   
@@ -909,6 +912,11 @@ export default class GameServer implements Party.Server {
 
     // Generate and send narrative (async, non-blocking)
     this.generateAndSendNarrative();
+
+    // Generate connection insights (async, non-blocking)
+    this.generateConnectionInsights().catch(err => {
+      console.error("[Server] Failed to generate connection insights:", err);
+    });
   }
 
   private async generateAndSendNarrative(): Promise<void> {
@@ -1005,6 +1013,156 @@ export default class GameServer implements Party.Server {
     return this.narrativeGenerationPromise;
   }
 
+  private getConnectionInsight(userId: string, otherUserId: string): string | undefined {
+    return this.connectionInsights.get(userId)?.get(otherUserId);
+  }
+
+  private async generateConnectionInsights(): Promise<void> {
+    // If already generating, don't start another
+    if (this.connectionInsightsGenerationPromise) {
+      return;
+    }
+
+    this.connectionInsightsGenerationPromise = (async () => {
+      try {
+        // Validate we have enough data
+        if (this.users.size < 2) {
+          return;
+        }
+        
+        if (this.questions.length === 0) {
+          return;
+        }
+
+        const connectedUsers = [...this.room.getConnections()];
+        const pairs: Array<{
+          userAId: string;
+          userBId: string;
+          userAName: string;
+          userBName: string;
+          score: number;
+          agreements: string[];
+          differences: string[];
+        }> = [];
+
+        // Collect all pairs with their agreements/differences
+        for (let i = 0; i < connectedUsers.length; i++) {
+          const userAConn = connectedUsers[i];
+          const userA = this.users.get(userAConn.id);
+          if (!userA) continue;
+
+          for (let j = i + 1; j < connectedUsers.length; j++) {
+            const userBConn = connectedUsers[j];
+            const userB = this.users.get(userBConn.id);
+            if (!userB) continue;
+
+            const score = this.calculateCompatibility(userA, userB);
+            const agreements: string[] = [];
+            const differences: string[] = [];
+
+            // Analyze agreements and differences
+            for (const [qId, answerMetaA] of userA.answers) {
+              const answerMetaB = userB.answers.get(qId);
+              if (!answerMetaB) continue;
+
+              const question = this.questions.find((q) => q.id === qId);
+              if (!question) continue;
+
+              const answerA = answerMetaA.value;
+              const answerB = answerMetaB.value;
+
+              let isAgreement = false;
+              if (answerA.type === "choice" && answerB.type === "choice") {
+                isAgreement = answerA.answerId === answerB.answerId;
+              } else if (answerA.type === "slider" && answerB.type === "slider") {
+                // Consider agreement if within 20% of range (already have question from line 1066)
+                if (question.type === QuestionType.SLIDER) {
+                  const maxPosition = question.config.positions - 1;
+                  if (maxPosition > 0) {
+                    const normalizedA = answerA.value / maxPosition;
+                    const normalizedB = answerB.value / maxPosition;
+                    const diff = Math.abs(normalizedA - normalizedB);
+                    isAgreement = diff <= 0.2;
+                  } else {
+                    isAgreement = answerA.value === answerB.value;
+                  }
+                }
+              }
+
+              if (isAgreement) {
+                agreements.push(question.text);
+              } else {
+                differences.push(question.text);
+              }
+            }
+
+            // Generate insights for all pairs (batch API call)
+            pairs.push({
+              userAId: userAConn.id,
+              userBId: userBConn.id,
+              userAName: userA.name,
+              userBName: userB.name,
+              score,
+              agreements: agreements.slice(0, 3), // Limit to top 3 agreements
+              differences: differences.slice(0, 2), // Limit to top 2 differences
+            });
+          }
+        }
+
+        if (pairs.length === 0) {
+          return;
+        }
+
+        // Generate insights using LLM
+        let insightsMap: Map<string, string>;
+        try {
+          insightsMap = await generateConnectionInsights(pairs);
+        } catch (llmError) {
+          console.error("[Server] Connection insights LLM API failed, using fallback:", llmError);
+          // Use fallback for all pairs
+          insightsMap = new Map();
+          for (const pair of pairs) {
+            const key = `${pair.userAName}-${pair.userBName}`;
+            insightsMap.set(key, generateFallbackConnectionInsight(pair.score));
+          }
+        }
+
+        // Store insights in both directions (A→B and B→A)
+        for (const pair of pairs) {
+          const key = `${pair.userAName}-${pair.userBName}`;
+          const reason = insightsMap.get(key) || generateFallbackConnectionInsight(pair.score);
+
+          // Store A→B
+          if (!this.connectionInsights.has(pair.userAId)) {
+            this.connectionInsights.set(pair.userAId, new Map());
+          }
+          this.connectionInsights.get(pair.userAId)!.set(pair.userBId, reason);
+
+          // Store B→A (same reason)
+          if (!this.connectionInsights.has(pair.userBId)) {
+            this.connectionInsights.set(pair.userBId, new Map());
+          }
+          this.connectionInsights.get(pair.userBId)!.set(pair.userAId, reason);
+        }
+
+        // Re-send results to all connections with updated connection reasons
+        // Only if we're still in RESULTS or REVEAL phase
+        if (this.phase === GamePhase.RESULTS || this.phase === GamePhase.REVEAL) {
+          for (const connection of this.room.getConnections()) {
+            this.sendResultsToConnection(connection);
+          }
+        }
+      } catch (error) {
+        console.error("[Server] Connection insights generation failed:", error instanceof Error ? error.message : String(error));
+      } finally {
+        // Clear promise so late joiners know generation is complete
+        this.connectionInsightsGenerationPromise = null;
+      }
+    })();
+
+    return this.connectionInsightsGenerationPromise;
+  }
+
   private sendResultsToConnection(connection: Party.Connection): void {
     const user = this.users.get(connection.id);
     if (!user) return;
@@ -1025,6 +1183,7 @@ export default class GameServer implements Party.Server {
         anonymousName: otherUser.name,
         score,
         rank: 0,
+        connectionReason: this.getConnectionInsight(connection.id, otherConn.id),
       });
     }
 
