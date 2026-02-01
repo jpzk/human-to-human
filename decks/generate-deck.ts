@@ -149,7 +149,7 @@ async function callMinimax(systemPrompt: string, userPrompt: string, maxRetries 
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "MiniMax-Text-01",
+        model: "MiniMax-M2.1-lightning",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },

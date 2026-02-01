@@ -1,18 +1,7 @@
 import type { NarrativeData } from "@/services/narrativeService";
 import { callMinimaxAPI, type MinimaxMessage } from "./minimaxClient";
 
-const SYSTEM_PROMPT = `You are a creative storyteller for a social connection game. Write 3-4 ultra-concise, punchy narrative insights about how players answered questions together.
-
-Guidelines:
-- ONE sentence per insight, maximum 15 words
-- Be sharp, witty, and memorable
-- Mix tones: playful for speed, thoughtful for connections, dramatic for outliers
-- Use player names naturally
-- Focus on the most striking observation
-- No fluff or repetition
-
-Return ONLY a JSON array of strings, no markdown. Example format:
-["insight 1", "insight 2", "insight 3"]`;
+const SYSTEM_PROMPT = `Write a brief story (2-3 paragraphs) about how this group connected through their answers. Use the data provided to extract genuine insights about where they agreed, differed, hesitated, or found unique connections. NO titles. NO markdown. NO formatting. Just plain text paragraphs separated by a single blank line.`;
 
 function formatNarrativeData(data: NarrativeData): string {
   const parts: string[] = [];
@@ -62,7 +51,7 @@ function formatNarrativeData(data: NarrativeData): string {
 export async function generateNarrative(
   narrativeData: NarrativeData,
   apiKey?: string
-): Promise<string[]> {
+): Promise<string> {
   const key = apiKey ?? process.env.MINIMAX_API_KEY;
 
   if (!key) {
@@ -78,53 +67,59 @@ export async function generateNarrative(
     { role: "system", content: SYSTEM_PROMPT },
     {
       role: "user",
-      content: `Here's the game data:\n\n${dataDescription}\n\nWrite 3-5 engaging narrative insights based on this data.`,
+      content: `Here's the game data:\n\n${dataDescription}\n\nWrite a brief narrative story based on this data.`,
     },
   ];
 
   try {
     const content = await callMinimaxAPI(messages, key);
+    
+    console.log("[narrativeGenerator] Raw content received:", content.substring(0, 200));
 
-    // Try to parse as JSON array
-    try {
-      // Remove markdown code blocks if present
-      const cleanedContent = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-      
-      const insights: unknown = JSON.parse(cleanedContent);
-      
-      // Validate it's an array of strings
-      if (Array.isArray(insights)) {
-        // Filter and validate each element
-        const validInsights = insights
-          .filter((i): i is string => typeof i === "string" && i.trim().length > 0)
-          .map((i) => i.trim())
-          .slice(0, 5); // Limit to 5 insights max
-        
-        if (validInsights.length > 0) {
-          return validInsights;
-        }
-      }
-      
-      throw new Error("Invalid response format: not an array of strings");
-    } catch (parseError) {
-      // Fallback: try to extract insights from plain text
-      const lines = content
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0 && !line.startsWith("```"));
-      
-      if (lines.length > 0) {
-        return lines.slice(0, 5);
-      }
-      
-      // Last resort: validate content isn't too long and return as single insight
-      const maxLength = 500; // Reasonable max length for a single insight
-      if (content.length > maxLength) {
-        return [content.substring(0, maxLength) + "..."];
-      }
-      
-      return [content];
+    // Clean up the content - remove ALL formatting
+    let cleanedContent = content
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .replace(/^["']|["']$/g, "") // Remove surrounding quotes
+      .replace(/^#+\s+.+$/gm, "") // Remove markdown headers (# Title)
+      .replace(/^\*\*(.+)\*\*$/gm, "$1") // Remove bold (**text**)
+      .replace(/\*\*(.+?)\*\*/g, "$1") // Remove inline bold
+      .replace(/\*([^*]+)\*/g, "$1") // Remove italic/emphasis (*text*)
+      .replace(/_([^_]+)_/g, "$1") // Remove underline emphasis (_text_)
+      .replace(/\.undefined\b/g, ".") // Remove .undefined
+      .replace(/\bundefined\b/g, "") // Remove standalone undefined
+      .replace(/\n{3,}/g, "\n\n") // Normalize multiple newlines to double
+      .trim()
+      .split("\n")
+      .filter(line => line.trim().length > 0) // Remove empty lines
+      .join("\n\n"); // Rejoin with double newlines between paragraphs
+    
+    console.log("[narrativeGenerator] Cleaned content:", cleanedContent.substring(0, 200));
+    if (cleanedContent.length > 0) {
+      console.log("[narrativeGenerator] First char code:", cleanedContent.charCodeAt(0), "char:", cleanedContent.charAt(0));
     }
+    
+    // Validate length (reasonable bounds for a story)
+    const minLength = 80; // Minimum reasonable story length
+    const maxLength = 600; // Maximum reasonable story length
+    
+    if (cleanedContent.length < minLength) {
+      // If too short, use fallback
+      throw new Error("Generated story too short");
+    }
+    
+    if (cleanedContent.length > maxLength) {
+      // Truncate if too long, but try to end at a sentence boundary
+      cleanedContent = cleanedContent.substring(0, maxLength);
+      const lastPeriod = cleanedContent.lastIndexOf(".");
+      if (lastPeriod > maxLength * 0.8) {
+        cleanedContent = cleanedContent.substring(0, lastPeriod + 1);
+      } else {
+        cleanedContent = cleanedContent.trim() + "...";
+      }
+    }
+    
+    return cleanedContent;
   } catch (error) {
     console.error("[narrativeGenerator] Failed to generate narrative:", error instanceof Error ? error.message : String(error));
     throw error;
@@ -134,28 +129,37 @@ export async function generateNarrative(
 /**
  * Generate a fallback narrative when LLM fails
  */
-export function generateFallbackNarrative(narrativeData: NarrativeData): string[] {
-  const insights: string[] = [];
+export function generateFallbackNarrative(narrativeData: NarrativeData): string {
+  const parts: string[] = [];
   
-  insights.push(`${narrativeData.totalPlayers} players answered ${narrativeData.totalQuestions} questions together.`);
+  // Opening paragraph
+  parts.push(`This group started where many connections do — with simple questions about preferences and everyday choices. ${narrativeData.totalPlayers} people came together to answer ${narrativeData.totalQuestions} questions, each one a small window into who they are.`);
   
+  // Middle paragraph - shift to deeper questions
+  parts.push(`As the questions went deeper, something shifted. Beneath the surface of hobbies and preferences, patterns emerged. Some found common ground, while others revealed the beautiful diversity within the group.`);
+  
+  // Observation paragraph
+  const observations: string[] = [];
   if (narrativeData.consensus) {
-    insights.push(`Everyone agreed on one thing: "${narrativeData.consensus.answer}" when asked "${narrativeData.consensus.questionText}".`);
+    observations.push(`there was clear agreement on "${narrativeData.consensus.answer}"`);
   }
-  
   if (narrativeData.maverick) {
-    insights.push(`${narrativeData.maverick.name} stood out with ${narrativeData.maverick.outlierCount} unique answers.`);
+    observations.push(`${narrativeData.maverick.name} brought unique perspectives`);
   }
-  
-  if (narrativeData.quickdraw) {
-    insights.push(`${narrativeData.quickdraw.name} was the fastest, answering in an average of ${narrativeData.quickdraw.avgTime.toFixed(1)} seconds.`);
-  }
-  
   if (narrativeData.secretPair) {
-    insights.push(`${narrativeData.secretPair.names[0]} and ${narrativeData.secretPair.names[1]} uniquely matched on "${narrativeData.secretPair.question}".`);
+    observations.push(`${narrativeData.secretPair.names[0]} and ${narrativeData.secretPair.names[1]} discovered a special connection`);
   }
   
-  return insights.length > 0 ? insights : ["The game has ended. Thanks for playing!"];
+  if (observations.length > 0) {
+    parts.push(`What stands out is not just what was chosen, but how varied the answers were — ${observations.join(", ")}. This group was willing to keep going anyway, to see what would emerge.`);
+  } else {
+    parts.push(`What stands out is not what was chosen, but how varied the answers were — and how willing this group was to keep going anyway.`);
+  }
+  
+  // Closing paragraph
+  parts.push(`This moment wasn't about knowing each other perfectly. It was about showing up, side by side, and letting a bit of honesty into the room. Whatever happens next, this was a real start.`);
+  
+  return parts.join(" ");
 }
 
 /**

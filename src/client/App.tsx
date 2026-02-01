@@ -5,7 +5,7 @@ import { RevealView } from "@/components/game/RevealView";
 import { CreateLobbyView } from "@/components/game/CreateLobbyView";
 import { WaitingLobbyView } from "@/components/game/WaitingLobbyView";
 import { IntroView } from "@/components/game/IntroView";
-import { TTSToggle } from "@/components/game/TTSToggle";
+import { AudioToggle } from "@/components/game/AudioToggle";
 import { NudgeNotification } from "@/components/game/NudgeNotification";
 import { RevealRequestNotification } from "@/components/game/RevealRequestNotification";
 import { ChatModal } from "@/components/game/ChatModal";
@@ -13,12 +13,12 @@ import { Cursor } from "@/components/game/Cursor";
 import { GamePhase } from "@/types/game";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useGameState } from "@/hooks/useGameState";
-import { useTTS } from "@/hooks/useTTS";
+import { useAudio } from "@/hooks/useAudio";
 import { getTotalPlayers } from "@/services/gameService";
 import { generateRoomId, getRoomIdFromUrl, setRoomIdInUrl, getRoomLink } from "@/lib/roomUtils";
 import { getDeck } from "@/services/deckService";
 import { Button } from "@/components/ui/button";
-import type { ServerMessage, TTSResponseMessage, ReadyStatusMessage, IntroReadyStatusMessage, NudgeMessage, ChatMessageSend, ChatCloseRequestMessage } from "@/types/messages";
+import type { ServerMessage, ReadyStatusMessage, IntroReadyStatusMessage, NudgeMessage, ChatMessageSend, ChatCloseRequestMessage } from "@/types/messages";
 import "./App.css";
 
 const VIEWPORT_W = 1280;
@@ -49,8 +49,8 @@ export default function App() {
   // Store pending lobby config when creating a new lobby
   const [pendingLobbyConfig, setPendingLobbyConfig] = useState<{ deck?: string } | null>(null);
 
-  // TTS enabled state (default ON)
-  const [ttsEnabled, setTtsEnabled] = useState(true);
+  // Audio enabled state (default ON for prerecorded audio)
+  const [audioEnabled, setAudioEnabled] = useState(true);
 
   // Results ready state tracking
   const [resultsReadyCount, setResultsReadyCount] = useState(0);
@@ -69,32 +69,17 @@ export default function App() {
   const [dropEventIds, setDropEventIds] = useState<Record<string, number>>({});
   const previousAnsweredByRef = useRef<Record<string, string[]>>({});
   const dropEventCounterRef = useRef(0);
+  const myIdRef = useRef<string | null>(null);
 
   // Use custom hooks for game state and WebSocket (only connect if roomId exists)
   const gameState = useGameState();
 
-  // Create TTS instance first - useTTS uses refs internally for sendMessage
-  // We'll use a ref-based approach to avoid circular dependency with useWebSocket
-  const sendMessageRef = useRef<((msg: any) => void) | null>(null);
-  const myIdRef = useRef<string | null>(null);
-  const ttsSendMessage = useCallback((msg: { type: string; text: string; requestId: string }) => {
-    if (sendMessageRef.current) {
-      sendMessageRef.current(msg);
-    }
-  }, []);
+  // Audio hook for playing prerecorded MP3 files (not TTS generation)
+  const { state: audioState, playPrerecordedAudio, stop: audioStop } = useAudio();
 
-  const { state: ttsState, speak: ttsSpeak, stop: ttsStop, handleTTSResponse, playPrerecordedAudio } = useTTS({ 
-    sendMessage: ttsSendMessage 
-  });
-
-  // Wrap message handler to also handle TTS responses and ready status
+  // Wrap message handler to also handle ready status
   const handleMessage = useCallback((msg: ServerMessage) => {
     gameState.handleMessage(msg);
-    
-    // Handle TTS responses
-    if (msg.type === "TTS_RESPONSE") {
-      handleTTSResponse(msg as TTSResponseMessage);
-    }
     
     // Handle ready status updates
     if (msg.type === "READY_STATUS") {
@@ -111,17 +96,12 @@ export default function App() {
       setIntroTotalPlayers(readyMsg.totalPlayers);
       setIsCurrentUserIntroReady(readyMsg.readyUserIds.includes(myIdRef.current || ""));
     }
-  }, [gameState.handleMessage, handleTTSResponse]);
+  }, [gameState.handleMessage]);
 
   const { status, sendMessage } = useWebSocket({
     roomId: roomId || "",
     onMessage: handleMessage,
   });
-
-  // Update refs
-  useEffect(() => {
-    sendMessageRef.current = sendMessage;
-  }, [sendMessage]);
 
   const {
     users,
@@ -134,7 +114,7 @@ export default function App() {
     revealedUsers,
     lobbyConfig,
     questions,
-    narrativeInsights,
+    narrativeStory,
     nudgeCooldowns,
     revealNotifications,
     activeChat,
@@ -410,26 +390,26 @@ export default function App() {
       "Friendship Fortunes": "friendship-fortunes",
       "Love in Harmony": "love-in-harmony",
       "Whispers of the Heart": "whispers-of-the-heart",
-      "Office Allies: Building Bonds Beyond Cubicles": "office-allies",
+      "Office Allies: Building Bonds Beyond Cubicles": "office-allies-building-bonds-beyond-cubicles",
     };
     return slugMap[deckName] || deckName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   }, []);
 
-  // Auto-speak when question changes and TTS is enabled
+  // Auto-play prerecorded audio when question changes (if audio enabled)
   useEffect(() => {
-    if (!ttsEnabled || !currentQuestion || phase !== GamePhase.ANSWERING) return;
+    if (!audioEnabled || !currentQuestion || phase !== GamePhase.ANSWERING) return;
 
-    // All decks have prerecorded audio
+    // Play prerecorded audio file for this question
     if (currentQuestion.audioFile && lobbyConfig?.deck) {
       const deckSlug = getDeckSlug(lobbyConfig.deck);
       const audioUrl = `/decks/${deckSlug}/${currentQuestion.audioFile}`;
       playPrerecordedAudio(audioUrl);
     }
-  }, [currentQuestion?.id, ttsEnabled, phase, playPrerecordedAudio, lobbyConfig, getDeckSlug]);
+  }, [currentQuestion?.id, audioEnabled, phase, playPrerecordedAudio, lobbyConfig, getDeckSlug]);
 
-  // Play deck introduction audio when entering INTRO phase
+  // Play deck introduction audio when entering INTRO phase (if audio enabled)
   useEffect(() => {
-    if (ttsEnabled && phase === GamePhase.INTRO && lobbyConfig?.deck) {
+    if (audioEnabled && phase === GamePhase.INTRO && lobbyConfig?.deck) {
       const deck = getDeck(lobbyConfig.deck);
       if (deck?.introAudioFile) {
         const deckSlug = getDeckSlug(lobbyConfig.deck);
@@ -437,16 +417,16 @@ export default function App() {
         playPrerecordedAudio(introUrl);
       }
     }
-  }, [phase, ttsEnabled, lobbyConfig, getDeckSlug, playPrerecordedAudio]);
+  }, [phase, audioEnabled, lobbyConfig, getDeckSlug, playPrerecordedAudio]);
 
-  // Stop TTS and reset ready state when leaving RESULTS phase
+  // Stop audio and reset ready state when leaving RESULTS phase
   useEffect(() => {
     if (phase !== GamePhase.RESULTS) {
-      ttsStop();
+      audioStop();
       setIsCurrentUserReady(false);
       setResultsReadyCount(0);
     }
-  }, [phase, ttsStop]);
+  }, [phase, audioStop]);
 
   // Reset intro ready state when leaving INTRO phase
   useEffect(() => {
@@ -456,18 +436,13 @@ export default function App() {
     }
   }, [phase]);
 
-  // Toggle handler
-  const handleTTSToggle = useCallback(() => {
-    if (ttsEnabled) {
-      ttsStop(); // Stop current playback when disabling
+  // Audio toggle handler
+  const handleAudioToggle = useCallback(() => {
+    if (audioEnabled) {
+      audioStop(); // Stop current playback when disabling
     }
-    setTtsEnabled(!ttsEnabled);
-  }, [ttsEnabled, ttsStop]);
-
-  // Memoize TTS stop callback to prevent unnecessary re-renders
-  const handleTTSStop = useCallback(() => {
-    ttsStop();
-  }, [ttsStop]);
+    setAudioEnabled(!audioEnabled);
+  }, [audioEnabled, audioStop]);
 
   // Handle player ready for results
   const handlePlayerReady = useCallback(() => {
@@ -554,10 +529,10 @@ export default function App() {
           )}
           {phase === GamePhase.INTRO && (
             <>
-              <TTSToggle
-                enabled={ttsEnabled}
-                ttsState={ttsState}
-                onToggle={handleTTSToggle}
+              <AudioToggle
+                enabled={audioEnabled}
+                audioState={audioState}
+                onToggle={handleAudioToggle}
               />
               <IntroView
                 introduction={getDeck(lobbyConfig?.deck || "")?.introduction || ""}
@@ -571,10 +546,10 @@ export default function App() {
           )}
           {phase === GamePhase.ANSWERING && (
             <>
-              <TTSToggle
-                enabled={ttsEnabled}
-                ttsState={ttsState}
-                onToggle={handleTTSToggle}
+              <AudioToggle
+                enabled={audioEnabled}
+                audioState={audioState}
+                onToggle={handleAudioToggle}
               />
               <AnsweringView
                 currentQuestion={currentQuestion}
@@ -593,12 +568,7 @@ export default function App() {
           {phase === GamePhase.RESULTS && (
             <ResultsView 
               matches={results} 
-              narrativeInsights={narrativeInsights} 
-              ttsEnabled={ttsEnabled}
-              ttsState={ttsState}
-              onTTSToggle={handleTTSToggle}
-              onTTSSpeak={ttsSpeak}
-              onTTSStop={handleTTSStop}
+              narrativeStory={narrativeStory} 
               readyCount={resultsReadyCount}
               totalPlayers={resultsTotalPlayers}
               isCurrentUserReady={isCurrentUserReady}

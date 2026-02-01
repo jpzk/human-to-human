@@ -1,17 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import type { CompatibilityScore } from "@/types/messages";
 import { useTypewriter } from "@/hooks/useTypewriter";
-import { TTSToggle } from "@/components/game/TTSToggle";
 
 type ResultsViewProps = {
   matches: CompatibilityScore[];
-  narrativeInsights: string[];
-  ttsEnabled: boolean;
-  ttsState: "idle" | "loading" | "playing" | "error";
-  onTTSToggle: () => void;
-  onTTSSpeak: (text: string) => void;
-  onTTSStop: () => void;
+  narrativeStory: string;
   readyCount: number;
   totalPlayers: number;
   isCurrentUserReady: boolean;
@@ -19,85 +13,57 @@ type ResultsViewProps = {
 };
 
 // Constants for animation timing
-const TYPEWRITER_SPEED_MS = 20; // Milliseconds per character (faster: 2x speed)
-const INSIGHT_PAUSE_MS = 1000; // Pause between insights in milliseconds
+const TYPEWRITER_SPEED_MS = 20; // Milliseconds per character
 
 export function ResultsView({ 
   matches, 
-  narrativeInsights, 
-  ttsEnabled,
-  ttsState,
-  onTTSToggle,
-  onTTSSpeak,
-  onTTSStop,
+  narrativeStory, 
   readyCount,
   totalPlayers,
   isCurrentUserReady,
   onPlayerReady
 }: ResultsViewProps) {
-  const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
-  const [completedInsights, setCompletedInsights] = useState<Set<number>>(new Set());
-  const [narrativeError, setNarrativeError] = useState(false);
   const [isNarrativeLoading, setIsNarrativeLoading] = useState(true);
   const [animationSkipped, setAnimationSkipped] = useState(false);
+  const hasReceivedStory = useRef(false);
 
-  // Track narrative loading/error states
+  // Track narrative loading state - only transition from loading to loaded once
   useEffect(() => {
-    if (narrativeInsights.length > 0) {
+    if (narrativeStory && narrativeStory.length > 0 && !hasReceivedStory.current) {
+      hasReceivedStory.current = true;
       setIsNarrativeLoading(false);
-      setNarrativeError(false);
-      console.log("[ResultsView] Narrative received:", narrativeInsights.length, "insights");
-    } else {
-      // If we're in RESULTS phase but no insights after a delay, might be error
+      console.log("[ResultsView] Narrative received:", narrativeStory.length, "characters");
+      console.log("[ResultsView] Story preview:", narrativeStory.substring(0, 100));
+    } else if (!narrativeStory || narrativeStory.length === 0) {
+      // Set timeout to show error if story never arrives
       const timeout = setTimeout(() => {
-        if (narrativeInsights.length === 0) {
-          console.warn("[ResultsView] Narrative not received after delay - may have failed");
-          // Don't set error immediately, might still be loading
+        if (!hasReceivedStory.current) {
+          console.warn("[ResultsView] Narrative not received after delay");
+          setIsNarrativeLoading(false);
         }
-      }, 5000); // 5 second timeout
+      }, 25000); // 25 second timeout for slow API
       return () => clearTimeout(timeout);
     }
-  }, [narrativeInsights]);
+  }, [narrativeStory]);
 
-  const currentInsight = narrativeInsights[currentInsightIndex] || "";
   const displayedText = useTypewriter({
-    text: currentInsight,
+    text: narrativeStory || "",
     speed: TYPEWRITER_SPEED_MS,
     onComplete: () => {
-      // Mark current insight as completed
-      setCompletedInsights((prev) => new Set(prev).add(currentInsightIndex));
-      
-      // Speak the completed insight if TTS is enabled
-      if (ttsEnabled && currentInsight) {
-        onTTSSpeak(currentInsight);
-      }
-      
-      // Move to next insight after a short pause
-      if (currentInsightIndex < narrativeInsights.length - 1) {
-        setTimeout(() => {
-          setCurrentInsightIndex((prev) => prev + 1);
-        }, INSIGHT_PAUSE_MS);
-      }
+      // Animation complete
     },
   });
 
-  // Reset when narrativeInsights change
+  // Reset only when component first mounts (not on every narrativeStory change)
   useEffect(() => {
-    setCurrentInsightIndex(0);
-    setCompletedInsights(new Set());
+    hasReceivedStory.current = false;
     setIsNarrativeLoading(true);
-    setNarrativeError(false);
     setAnimationSkipped(false);
-    // Stop TTS when narrative changes
-    onTTSStop();
-  }, [narrativeInsights, onTTSStop]);
+  }, []); // Empty deps - only run on mount
 
-  // Skip animation - show all insights immediately
+  // Skip animation - show full story immediately
   const handleSkipAnimation = () => {
     setAnimationSkipped(true);
-    setCurrentInsightIndex(narrativeInsights.length);
-    const allCompleted = new Set(narrativeInsights.map((_, i) => i));
-    setCompletedInsights(allCompleted);
   };
 
   return (
@@ -110,30 +76,20 @@ export function ResultsView({
       </div>
 
       {/* Narrative Story Section */}
-      <div className="flex-1 w-full px-6 py-4 overflow-y-auto custom-scrollbar min-h-0">
-        <div className="mb-3 flex items-center justify-between relative">
+      <div className="flex-1 w-full px-6 py-4 overflow-y-auto overflow-x-hidden custom-scrollbar min-h-0">
+        <div className="mb-3">
           <h3 className="text-lg font-semibold text-foreground">The Story</h3>
-          {narrativeInsights.length > 0 && (
-            <TTSToggle
-              enabled={ttsEnabled}
-              ttsState={ttsState}
-              onToggle={onTTSToggle}
-            />
-          )}
         </div>
         
-        {isNarrativeLoading && narrativeInsights.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8 space-y-3">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-muted-foreground">Analyzing your answers...</p>
+        {isNarrativeLoading && (!narrativeStory || narrativeStory.length === 0) ? (
+          <div className="flex flex-col items-center justify-center py-12 space-y-3">
+            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-muted-foreground font-medium">Creating your story...</p>
+            <p className="text-xs text-muted-foreground">Analyzing your answers...</p>
           </div>
-        ) : narrativeError ? (
-          <div className="text-sm text-muted-foreground py-4 text-center">
-            <p>Unable to generate story at this time.</p>
-          </div>
-        ) : narrativeInsights.length > 0 ? (
+        ) : narrativeStory && narrativeStory.length > 0 ? (
           <div className="space-y-3">
-            {!animationSkipped && (
+            {!animationSkipped && displayedText.length < narrativeStory.length && (
               <button
                 onClick={handleSkipAnimation}
                 className="text-xs text-muted-foreground hover:text-foreground underline mb-2"
@@ -141,53 +97,27 @@ export function ResultsView({
                 Skip animation
               </button>
             )}
-            <div className="space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
+            <div>
               {animationSkipped ? (
-                // Show all insights immediately when skipped
-                narrativeInsights.map((insight, index) => (
-                  <p
-                    key={index}
-                    className="text-sm text-muted-foreground leading-relaxed"
-                  >
-                    {insight}
-                  </p>
-                ))
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap break-words">
+                  {narrativeStory}
+                </p>
               ) : (
-                // Show typewriter animation
-                narrativeInsights.map((insight, index) => {
-                  const isCurrent = index === currentInsightIndex;
-                  const isCompleted = completedInsights.has(index);
-                  
-                  if (isCompleted) {
-                    // Show completed insight
-                    return (
-                      <p
-                        key={index}
-                        className="text-sm text-muted-foreground leading-relaxed"
-                      >
-                        {insight}
-                      </p>
-                    );
-                  } else if (isCurrent) {
-                    // Show currently typing insight
-                    return (
-                      <p
-                        key={index}
-                        className="text-sm text-muted-foreground leading-relaxed"
-                      >
-                        {displayedText}
-                        <span className="animate-pulse ml-1">|</span>
-                      </p>
-                    );
-                  } else {
-                    // Future insight, don't show yet
-                    return null;
-                  }
-                })
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap break-words">
+                  {displayedText}
+                  {displayedText.length < narrativeStory.length && (
+                    <span className="animate-pulse ml-1">|</span>
+                  )}
+                </p>
               )}
             </div>
           </div>
-        ) : null}
+        ) : (
+          <div className="text-sm text-muted-foreground py-8 text-center space-y-2">
+            <p className="font-medium">Unable to generate story</p>
+            <p className="text-xs">The narrative generation service may be unavailable</p>
+          </div>
+        )}
       </div>
 
       {/* Button */}

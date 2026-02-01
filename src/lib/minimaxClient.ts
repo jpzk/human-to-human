@@ -34,7 +34,7 @@ export async function callMinimaxAPI(
 ): Promise<string> {
   try {
     const requestBody = {
-      model: "MiniMax-Text-01",
+      model: "MiniMax-M2.1-lightning",
       messages,
       temperature: 0.8,
     };

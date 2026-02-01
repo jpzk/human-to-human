@@ -5,7 +5,6 @@ import {
   isValidRevealRequestMessage,
   isValidSliderAnswerMessage,
   isValidConfigureLobbyMessage,
-  isValidTTSRequestMessage,
   isValidPlayerReadyMessage,
   isValidIntroReadyMessage,
   isValidNudgeMessage,
@@ -19,7 +18,6 @@ import {
   type RevealStatusMessage,
   type RevealMutualMessage,
   type QuestionAdvanceMessage,
-  type TTSResponseMessage,
   type NarrativeMessage,
   type ReadyStatusMessage,
   type IntroReadyMessage,
@@ -33,7 +31,6 @@ import {
 } from "./types/messages";
 import { GamePhase, QuestionType, type LobbyConfig, type Question } from "./types/game";
 import { getDeck, deckToQuestions } from "./services/deckService";
-import { textToSpeech } from "./lib/tts";
 import { aggregateNarrativeData, type UserAnswerData, type AnswerWithMeta } from "./services/narrativeService";
 import { generateNarrative, generateFallbackNarrative, testMinimaxConnection } from "./lib/narrativeGenerator";
 import { generateConnectionInsights, generateFallbackConnectionInsight } from "./lib/connectionInsightGenerator";
@@ -166,7 +163,7 @@ export default class GameServer implements Party.Server {
   private questions: Question[] = [];
   private questionStartTimes = new Map<string, number>(); // questionId → timestamp when shown
   private answerOrderCounters = new Map<string, number>(); // questionId → counter for answer order
-  private narrativeInsights: string[] | null = null; // Cached narrative insights
+  private narrativeStory: string | null = null; // Cached narrative story
   private narrativeGenerationPromise: Promise<void> | null = null; // Track ongoing narrative generation
   private resultsReadyPlayers = new Set<string>(); // Track who's ready on results screen
   private introReadyPlayers = new Set<string>(); // Track who's ready on intro screen
@@ -266,21 +263,21 @@ export default class GameServer implements Party.Server {
 
     // If in RESULTS or REVEAL phase, send narrative if available or wait for generation
     if (this.phase === GamePhase.RESULTS || this.phase === GamePhase.REVEAL) {
-      if (this.narrativeInsights) {
+      if (this.narrativeStory) {
         // Narrative already generated, send immediately
         const narrativeMsg: NarrativeMessage = {
           type: "NARRATIVE",
-          insights: this.narrativeInsights,
+          story: this.narrativeStory,
         };
         connection.send(JSON.stringify(narrativeMsg));
       } else if (this.narrativeGenerationPromise) {
         // Narrative is still being generated, wait for it
         this.narrativeGenerationPromise
           .then(() => {
-            if (this.narrativeInsights) {
+            if (this.narrativeStory) {
               const narrativeMsg: NarrativeMessage = {
                 type: "NARRATIVE",
-                insights: this.narrativeInsights,
+                story: this.narrativeStory,
               };
               connection.send(JSON.stringify(narrativeMsg));
             }
@@ -415,12 +412,6 @@ export default class GameServer implements Party.Server {
       if (this.checkAllAnsweredCurrentQuestion()) {
         this.advanceToNextQuestion();
       }
-      return;
-    }
-
-    // Handle TTS request
-    if (isValidTTSRequestMessage(payload)) {
-      this.handleTTSRequest(payload, sender);
       return;
     }
 
@@ -763,7 +754,7 @@ export default class GameServer implements Party.Server {
     this.questionStartTimes.clear();
     this.answerOrderCounters.clear();
     // Clear narrative state
-    this.narrativeInsights = null;
+    this.narrativeStory = null;
     // Clear ready players sets
     this.resultsReadyPlayers.clear();
     this.introReadyPlayers.clear();
@@ -1008,12 +999,18 @@ export default class GameServer implements Party.Server {
       try {
         // Validate we have enough data
         if (this.users.size < 2) {
-          this.narrativeInsights = [];
+          console.warn("[Server] Not enough users for narrative generation:", this.users.size);
+          this.narrativeStory = "";
+          const emptyMsg: NarrativeMessage = { type: "NARRATIVE", story: "" };
+          this.room.broadcast(JSON.stringify(emptyMsg));
           return;
         }
         
         if (this.questions.length === 0) {
-          this.narrativeInsights = [];
+          console.warn("[Server] No questions for narrative generation");
+          this.narrativeStory = "";
+          const emptyMsg: NarrativeMessage = { type: "NARRATIVE", story: "" };
+          this.room.broadcast(JSON.stringify(emptyMsg));
           return;
         }
         
@@ -1027,32 +1024,39 @@ export default class GameServer implements Party.Server {
           });
         }
 
-        // Aggregate narrative insights
+        // Aggregate narrative data
         const narrativeData = aggregateNarrativeData(userAnswerData, this.questions);
         
         // Validate narrative data
         if (narrativeData.totalPlayers < 2 || narrativeData.totalQuestions === 0) {
-          this.narrativeInsights = [];
+          console.warn("[Server] Invalid narrative data:", narrativeData.totalPlayers, "players,", narrativeData.totalQuestions, "questions");
+          this.narrativeStory = "";
+          const emptyMsg: NarrativeMessage = { type: "NARRATIVE", story: "" };
+          this.room.broadcast(JSON.stringify(emptyMsg));
           return;
         }
 
-        // Generate narrative text using LLM
-        let insights: string[];
+        // Generate narrative story using LLM
+        let story: string;
         try {
-          insights = await generateNarrative(narrativeData);
+          story = await generateNarrative(narrativeData);
+          console.log("[Server] Generated story length:", story.length);
+          console.log("[Server] Story starts with:", story.substring(0, 50));
         } catch (llmError) {
           console.error("[Server] LLM API failed, using fallback narrative:", llmError);
           // Generate fallback narrative instead of empty
-          insights = generateFallbackNarrative(narrativeData);
+          story = generateFallbackNarrative(narrativeData);
+          console.log("[Server] Fallback story length:", story.length);
+          console.log("[Server] Fallback story starts with:", story.substring(0, 50));
         }
 
-        // Cache insights for late joiners
-        this.narrativeInsights = insights;
+        // Cache story for late joiners
+        this.narrativeStory = story;
 
         // Send narrative to all connections
         const narrativeMsg: NarrativeMessage = {
           type: "NARRATIVE",
-          insights,
+          story,
         };
         this.room.broadcast(JSON.stringify(narrativeMsg));
       } catch (error) {
@@ -1068,18 +1072,18 @@ export default class GameServer implements Party.Server {
             })),
             this.questions
           ));
-          this.narrativeInsights = fallback;
+          this.narrativeStory = fallback;
           const fallbackMsg: NarrativeMessage = {
             type: "NARRATIVE",
-            insights: fallback,
+            story: fallback,
           };
           this.room.broadcast(JSON.stringify(fallbackMsg));
         } catch (fallbackError) {
-          // Last resort: send empty insights so UI knows to stop loading
-          this.narrativeInsights = [];
+          // Last resort: send empty story so UI knows to stop loading
+          this.narrativeStory = "";
           const emptyMsg: NarrativeMessage = {
             type: "NARRATIVE",
-            insights: [],
+            story: "",
           };
           this.room.broadcast(JSON.stringify(emptyMsg));
         }
@@ -1306,44 +1310,6 @@ export default class GameServer implements Party.Server {
     this.activeChats.delete(chatId);
     this.chatMessageCounts.delete(chatId);
     this.chatMessageTimestamps.delete(chatId);
-  }
-
-  private async handleTTSRequest(
-    payload: { type: string; text: string; requestId: string },
-    sender: Party.Connection
-  ): Promise<void> {
-    // Get voice ID from env or use default
-    // Can be either a UUID or a Voice Library name (e.g., "Dacher", "Kora")
-    // If using a name, it will be treated as a HUME_AI provider voice
-    const voiceId = process.env.HUME_VOICE_ID || "Dacher"; // Default to Dacher voice from Voice Library
-
-    try {
-      const { audio, durationMs } = await textToSpeech(payload.text, voiceId);
-      
-      // Audio is already base64 string
-      const audioBase64 = audio;
-
-      const response: TTSResponseMessage = {
-        type: "TTS_RESPONSE",
-        requestId: payload.requestId,
-        audio: audioBase64,
-        durationMs,
-      };
-
-      // Send response only to the requesting client
-      sender.send(JSON.stringify(response));
-    } catch (error) {
-      console.error("[Server TTS] Error:", error instanceof Error ? error.message : String(error));
-      
-      const errorResponse: TTSResponseMessage = {
-        type: "TTS_RESPONSE",
-        requestId: payload.requestId,
-        audio: "",
-        durationMs: 0,
-        error: error instanceof Error ? error.message : "Unknown error",
-      };
-      sender.send(JSON.stringify(errorResponse));
-    }
   }
 
   transitionToReveal(): void {

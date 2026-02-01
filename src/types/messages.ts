@@ -37,11 +37,6 @@ export type StartGameMessage = {
   type: "START_GAME";
 };
 
-export type TTSRequestMessage = {
-  type: "TTS_REQUEST";
-  text: string;
-  requestId: string;
-};
 
 export type PlayerReadyMessage = {
   type: "PLAYER_READY";
@@ -75,7 +70,6 @@ export type ClientMessage =
   | TransitionToRevealMessage
   | ConfigureLobbyMessage
   | StartGameMessage
-  | TTSRequestMessage
   | PlayerReadyMessage
   | IntroReadyMessage
   | NudgeMessage
@@ -171,17 +165,9 @@ export type QuestionAdvanceMessage = {
   questionIndex: number;
 };
 
-export type TTSResponseMessage = {
-  type: "TTS_RESPONSE";
-  requestId: string;
-  audio: string;      // base64 encoded audio
-  durationMs: number;
-  error?: string;
-};
-
 export type NarrativeMessage = {
   type: "NARRATIVE";
-  insights: string[];  // Array of narrative strings
+  story: string;  // Cohesive narrative story
 };
 
 export type ReadyStatusMessage = {
@@ -252,7 +238,6 @@ export type ServerMessage =
   | RevealStatusMessage
   | RevealMutualMessage
   | QuestionAdvanceMessage
-  | TTSResponseMessage
   | NarrativeMessage
   | ReadyStatusMessage
   | IntroReadyStatusMessage
@@ -329,19 +314,6 @@ export function isValidConfigureLobbyMessage(msg: unknown): msg is ConfigureLobb
   return hasDeck;
 }
 
-export function isValidTTSRequestMessage(msg: unknown): msg is TTSRequestMessage {
-  if (typeof msg !== "object" || msg === null) return false;
-  const m = msg as Record<string, unknown>;
-  return (
-    m.type === "TTS_REQUEST" &&
-    typeof m.text === "string" &&
-    typeof m.requestId === "string" &&
-    m.text.length > 0 &&
-    m.text.length <= 1000 && // Reasonable limit for TTS
-    m.requestId.length > 0 &&
-    m.requestId.length <= MAX_ID_LENGTH
-  );
-}
 
 export function isValidPlayerReadyMessage(msg: unknown): msg is PlayerReadyMessage {
   if (typeof msg !== "object" || msg === null) return false;
