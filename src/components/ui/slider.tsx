@@ -97,7 +97,7 @@ export const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
             onChange={handleChange}
             disabled={disabled}
             className={cn(
-              "absolute top-0 left-0 w-full h-6 opacity-0 cursor-pointer z-10",
+              "absolute top-0 left-0 w-full h-6 opacity-0 cursor-inherit z-10",
               disabled && "cursor-not-allowed"
             )}
             aria-valuemin={min}
