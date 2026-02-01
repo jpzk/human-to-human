@@ -45,6 +45,11 @@ export default function App() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const lastSendRef = useRef(0);
   const THROTTLE_MS = 1000 / 30; // 30 FPS cursor updates
+  
+  // Cache cursor identity to survive reconnection transitions
+  // These refs act as fallback when live values are temporarily undefined
+  const stableMyName = useRef<string | null>(null);
+  const stableMyColor = useRef<string | null>(null);
 
   // Initialize roomId from URL - don't auto-generate
   const [roomId, setRoomId] = useState<string | null>(() => {
@@ -137,13 +142,61 @@ export default function App() {
     myIdRef.current = myId || null;
   }, [myId]);
 
+  // Initialize mouse position immediately on mount
+  useEffect(() => {
+    let initialized = false;
+    
+    const initMousePosition = (e: MouseEvent) => {
+      if (!initialized) {
+        setMousePosition({ x: e.clientX, y: e.clientY });
+        initialized = true;
+      }
+    };
+    
+    // Capture on first movement
+    document.addEventListener('mousemove', initMousePosition, { once: true });
+    
+    // Fallback: set to center after brief delay if no movement detected
+    const timeout = setTimeout(() => {
+      if (!initialized && !mousePosition) {
+        setMousePosition({ 
+          x: window.innerWidth / 2, 
+          y: window.innerHeight / 2 
+        });
+        initialized = true;
+      }
+    }, 100);
+    
+    return () => {
+      document.removeEventListener('mousemove', initMousePosition);
+      clearTimeout(timeout);
+    };
+  }, []); // Only run once on mount
+
   const totalPlayers = getTotalPlayers(users);
   const myName = myId ? users[myId]?.name : null;
   const myColor = myId ? users[myId]?.color : null;
   const isHost = myId !== null && myId === hostId;
   const cursorSize = isClicking ? CURSOR_SIZE_CLICKED : CURSOR_SIZE_DEFAULT;
-  // Hide native cursor when we have our own cursor component
-  const cursorStyle = myColor && myName ? { cursor: "none" } : undefined;
+  
+  // Cache cursor identity to survive reconnection transitions
+  // Clears on room change, updates when live values are available
+  useEffect(() => {
+    if (!roomId) {
+      stableMyName.current = null;
+      stableMyColor.current = null;
+      return;
+    }
+    if (myName) stableMyName.current = myName;
+    if (myColor) stableMyColor.current = myColor;
+  }, [roomId, myName, myColor]);
+  
+  // Use live values with fallback to cached values during reconnection transitions
+  const displayName = myName || stableMyName.current;
+  const displayColor = myColor || stableMyColor.current;
+  
+  // Hide native cursor when we have cursor identity (using stable values)
+  const cursorStyle = displayColor && displayName ? { cursor: "none" } : undefined;
 
   const handleAnswer = (questionId: string, answerId: string) => {
     sendMessage({ type: "ANSWER", questionId, answerId });
@@ -269,14 +322,15 @@ export default function App() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Cursor tracking
+  // Cursor tracking - decoupled local rendering from server updates
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
+      // ALWAYS update local position for smooth rendering, regardless of connection status
+      setMousePosition({ x: e.clientX, y: e.clientY });
+      
+      // Only send updates to server when connected and viewport is available
       const el = viewportRef.current;
       if (!el || status !== "connected") return;
-      
-      // Update local position state immediately for smooth rendering (screen coordinates)
-      setMousePosition({ x: e.clientX, y: e.clientY });
       
       // Calculate viewport coordinates for server updates
       const rect = el.getBoundingClientRect();
@@ -406,8 +460,8 @@ export default function App() {
                 totalPlayers={totalPlayers}
                 answeredBy={answeredBy}
                 myId={myId}
-                myName={myName}
-                myColor={myColor}
+                myName={displayName}
+                myColor={displayColor}
                 onAnswer={handleAnswer}
                 onSliderAnswer={handleSliderAnswer}
               />
@@ -498,8 +552,8 @@ export default function App() {
       </div>
       
       {/* Local player cursor - rendered like remote cursors for consistency */}
-      {myName && 
-        myColor && 
+      {displayName && 
+        displayColor && 
         mousePosition && (
         <div
           className="local-cursor-wrapper"
@@ -511,7 +565,7 @@ export default function App() {
           <div
             className="cursor"
             style={{
-              "--color": myColor,
+              "--color": displayColor,
               "--velocity": 0,
               transform: isClicking ? "scale(0.85)" : "scale(1)",
             } as React.CSSProperties}
@@ -532,13 +586,13 @@ export default function App() {
               {/* Foreground layer - colored outline */}
               <path
                 fill="none"
-                stroke={myColor}
+                stroke={displayColor}
                 strokeWidth={2}
                 strokeLinejoin="round"
                 d={CURSOR_PATH}
               />
             </svg>
-            <span className="cursor-name">{myName}</span>
+            <span className="cursor-name">{displayName}</span>
           </div>
         </div>
       )}
