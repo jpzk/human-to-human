@@ -47,6 +47,10 @@ export type PlayerReadyMessage = {
   type: "PLAYER_READY";
 };
 
+export type IntroReadyMessage = {
+  type: "INTRO_READY";
+};
+
 export type NudgeMessage = {
   type: "NUDGE";
   targetId: string;
@@ -73,6 +77,7 @@ export type ClientMessage =
   | StartGameMessage
   | TTSRequestMessage
   | PlayerReadyMessage
+  | IntroReadyMessage
   | NudgeMessage
   | ChatMessageSend
   | ChatCloseRequestMessage;
@@ -89,7 +94,7 @@ export type SyncMessage = {
   self: string;
   users: UserInfo[];
   answeredBy: Record<string, string[]>;
-  phase: "LOBBY" | "ANSWERING" | "RESULTS" | "REVEAL";
+  phase: "LOBBY" | "INTRO" | "ANSWERING" | "RESULTS" | "REVEAL";
   currentQuestionIndex: number;
   lobbyConfig: LobbyConfig | null;
   questions: Question[];
@@ -125,7 +130,7 @@ export type PlayerAnsweredMessage = {
 
 export type PhaseChangeMessage = {
   type: "PHASE_CHANGE";
-  phase: "LOBBY" | "ANSWERING" | "RESULTS" | "REVEAL";
+  phase: "LOBBY" | "INTRO" | "ANSWERING" | "RESULTS" | "REVEAL";
 };
 
 export type CompatibilityScore = {
@@ -181,6 +186,13 @@ export type NarrativeMessage = {
 
 export type ReadyStatusMessage = {
   type: "READY_STATUS";
+  readyCount: number;
+  totalPlayers: number;
+  readyUserIds: string[];
+};
+
+export type IntroReadyStatusMessage = {
+  type: "INTRO_READY_STATUS";
   readyCount: number;
   totalPlayers: number;
   readyUserIds: string[];
@@ -243,6 +255,7 @@ export type ServerMessage =
   | TTSResponseMessage
   | NarrativeMessage
   | ReadyStatusMessage
+  | IntroReadyStatusMessage
   | NudgeStatusMessage
   | NudgeReceivedMessage
   | RevealRequestNotificationMessage
@@ -334,6 +347,12 @@ export function isValidPlayerReadyMessage(msg: unknown): msg is PlayerReadyMessa
   if (typeof msg !== "object" || msg === null) return false;
   const m = msg as Record<string, unknown>;
   return m.type === "PLAYER_READY";
+}
+
+export function isValidIntroReadyMessage(msg: unknown): msg is IntroReadyMessage {
+  if (typeof msg !== "object" || msg === null) return false;
+  const m = msg as Record<string, unknown>;
+  return m.type === "INTRO_READY";
 }
 
 export function isValidNudgeMessage(msg: unknown): msg is NudgeMessage {

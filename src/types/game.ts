@@ -40,7 +40,8 @@ export type SliderQuestion = BaseQuestion & {
 export type Question = MultipleChoiceQuestion | SliderQuestion;
 
 export enum GamePhase {
-  LOBBY = "LOBBY",      // NEW: Waiting for players
+  LOBBY = "LOBBY",      // Waiting for players
+  INTRO = "INTRO",      // Deck introduction phase
   ANSWERING = "ANSWERING",
   RESULTS = "RESULTS",
   REVEAL = "REVEAL",

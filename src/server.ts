@@ -7,6 +7,7 @@ import {
   isValidConfigureLobbyMessage,
   isValidTTSRequestMessage,
   isValidPlayerReadyMessage,
+  isValidIntroReadyMessage,
   isValidNudgeMessage,
   isValidChatMessageSend,
   isValidChatCloseRequestMessage,
@@ -21,6 +22,8 @@ import {
   type TTSResponseMessage,
   type NarrativeMessage,
   type ReadyStatusMessage,
+  type IntroReadyMessage,
+  type IntroReadyStatusMessage,
   type NudgeStatusMessage,
   type NudgeReceivedMessage,
   type RevealRequestNotificationMessage,
@@ -166,6 +169,7 @@ export default class GameServer implements Party.Server {
   private narrativeInsights: string[] | null = null; // Cached narrative insights
   private narrativeGenerationPromise: Promise<void> | null = null; // Track ongoing narrative generation
   private resultsReadyPlayers = new Set<string>(); // Track who's ready on results screen
+  private introReadyPlayers = new Set<string>(); // Track who's ready on intro screen
   private connectionInsights: Map<string, Map<string, string>> = new Map(); // userId → (otherUserId → reason)
   private connectionInsightsGenerationPromise: Promise<void> | null = null; // Track ongoing connection insights generation
   private nudgeCooldowns = new Map<string, Map<string, number>>(); // senderId → (targetId → timestamp)
@@ -450,22 +454,18 @@ export default class GameServer implements Party.Server {
         // Clear any previous game state before starting new game
         this.clearGameState();
         
-        // Record start time for first question BEFORE phase change to prevent race condition
-        const firstQuestion = this.questions[0];
-        const questionStartTime = Date.now();
-        if (firstQuestion) {
-          this.questionStartTimes.set(firstQuestion.id, questionStartTime);
-          this.answerOrderCounters.set(firstQuestion.id, 0);
-        }
-        
-        this.phase = GamePhase.ANSWERING;
-        this.currentQuestionIndex = 0;
+        // Transition to INTRO phase (will transition to ANSWERING when 75% ready)
+        this.phase = GamePhase.INTRO;
+        this.introReadyPlayers.clear();
         
         const phaseChange: PhaseChangeMessage = {
           type: "PHASE_CHANGE",
-          phase: GamePhase.ANSWERING,
+          phase: GamePhase.INTRO as "INTRO",
         };
         this.room.broadcast(JSON.stringify(phaseChange));
+        
+        // Broadcast initial intro ready status
+        this.broadcastIntroReadyStatus();
         return;
       }
 
@@ -482,6 +482,15 @@ export default class GameServer implements Party.Server {
         if (this.phase === GamePhase.RESULTS) {
           this.resultsReadyPlayers.add(sender.id);
           this.broadcastReadyStatus();
+        }
+        return;
+      }
+
+      // Handle intro ready
+      if (isValidIntroReadyMessage(payload)) {
+        if (this.phase === GamePhase.INTRO) {
+          this.introReadyPlayers.add(sender.id);
+          this.broadcastIntroReadyStatus();
         }
         return;
       }
@@ -747,6 +756,9 @@ export default class GameServer implements Party.Server {
     this.answerOrderCounters.clear();
     // Clear narrative state
     this.narrativeInsights = null;
+    // Clear ready players sets
+    this.resultsReadyPlayers.clear();
+    this.introReadyPlayers.clear();
     this.narrativeGenerationPromise = null;
     // Clear user answers (but keep users for lobby)
     for (const user of this.users.values()) {
@@ -1355,5 +1367,43 @@ export default class GameServer implements Party.Server {
     if (readyPercentage >= 75 && this.phase === GamePhase.RESULTS) {
       this.transitionToReveal();
     }
+  }
+
+  private broadcastIntroReadyStatus(): void {
+    const readyMsg: IntroReadyStatusMessage = {
+      type: "INTRO_READY_STATUS",
+      readyCount: this.introReadyPlayers.size,
+      totalPlayers: this.users.size,
+      readyUserIds: Array.from(this.introReadyPlayers),
+    };
+    this.room.broadcast(JSON.stringify(readyMsg));
+    
+    // Auto-advance when 75% ready
+    const readyPercentage = this.users.size > 0 
+      ? (this.introReadyPlayers.size / this.users.size) * 100 
+      : 0;
+    
+    if (readyPercentage >= 75 && this.phase === GamePhase.INTRO) {
+      this.transitionToAnswering();
+    }
+  }
+
+  private transitionToAnswering(): void {
+    this.phase = GamePhase.ANSWERING;
+    this.currentQuestionIndex = 0;
+    this.introReadyPlayers.clear();
+    
+    // Record start time for first question
+    const firstQuestion = this.questions[0];
+    if (firstQuestion) {
+      this.questionStartTimes.set(firstQuestion.id, Date.now());
+      this.answerOrderCounters.set(firstQuestion.id, 0);
+    }
+    
+    const phaseChange: PhaseChangeMessage = {
+      type: "PHASE_CHANGE",
+      phase: GamePhase.ANSWERING,
+    };
+    this.room.broadcast(JSON.stringify(phaseChange));
   }
 }

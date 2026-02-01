@@ -4,6 +4,7 @@ import { ResultsView } from "@/components/game/ResultsView";
 import { RevealView } from "@/components/game/RevealView";
 import { CreateLobbyView } from "@/components/game/CreateLobbyView";
 import { WaitingLobbyView } from "@/components/game/WaitingLobbyView";
+import { IntroView } from "@/components/game/IntroView";
 import { TTSToggle } from "@/components/game/TTSToggle";
 import { NudgeNotification } from "@/components/game/NudgeNotification";
 import { RevealRequestNotification } from "@/components/game/RevealRequestNotification";
@@ -17,7 +18,7 @@ import { getTotalPlayers } from "@/services/gameService";
 import { generateRoomId, getRoomIdFromUrl, setRoomIdInUrl, getRoomLink } from "@/lib/roomUtils";
 import { getDeck } from "@/services/deckService";
 import { Button } from "@/components/ui/button";
-import type { ServerMessage, TTSResponseMessage, ReadyStatusMessage, NudgeMessage, ChatMessageSend, ChatCloseRequestMessage } from "@/types/messages";
+import type { ServerMessage, TTSResponseMessage, ReadyStatusMessage, IntroReadyStatusMessage, NudgeMessage, ChatMessageSend, ChatCloseRequestMessage } from "@/types/messages";
 import "./App.css";
 
 const VIEWPORT_W = 1280;
@@ -55,6 +56,11 @@ export default function App() {
   const [resultsReadyCount, setResultsReadyCount] = useState(0);
   const [resultsTotalPlayers, setResultsTotalPlayers] = useState(0);
   const [isCurrentUserReady, setIsCurrentUserReady] = useState(false);
+  
+  // Intro ready state tracking
+  const [introReadyCount, setIntroReadyCount] = useState(0);
+  const [introTotalPlayers, setIntroTotalPlayers] = useState(0);
+  const [isCurrentUserIntroReady, setIsCurrentUserIntroReady] = useState(false);
   
   // Track dismissed reveal notifications locally
   const [dismissedNotifications, setDismissedNotifications] = useState<Set<string>>(new Set());
@@ -96,6 +102,14 @@ export default function App() {
       setResultsReadyCount(readyMsg.readyCount);
       setResultsTotalPlayers(readyMsg.totalPlayers);
       setIsCurrentUserReady(readyMsg.readyUserIds.includes(myIdRef.current || ""));
+    }
+    
+    // Handle intro ready status updates
+    if (msg.type === "INTRO_READY_STATUS") {
+      const readyMsg = msg as IntroReadyStatusMessage;
+      setIntroReadyCount(readyMsg.readyCount);
+      setIntroTotalPlayers(readyMsg.totalPlayers);
+      setIsCurrentUserIntroReady(readyMsg.readyUserIds.includes(myIdRef.current || ""));
     }
   }, [gameState.handleMessage, handleTTSResponse]);
 
@@ -405,29 +419,25 @@ export default function App() {
   useEffect(() => {
     if (!ttsEnabled || !currentQuestion || phase !== GamePhase.ANSWERING) return;
 
-    // Check if question has prerecorded audio
+    // All decks have prerecorded audio
     if (currentQuestion.audioFile && lobbyConfig?.deck) {
       const deckSlug = getDeckSlug(lobbyConfig.deck);
       const audioUrl = `/decks/${deckSlug}/${currentQuestion.audioFile}`;
       playPrerecordedAudio(audioUrl);
-    } else {
-      // Fall back to TTS
-      ttsSpeak(currentQuestion.text);
     }
-  }, [currentQuestion?.id, ttsEnabled, phase, ttsSpeak, playPrerecordedAudio, lobbyConfig, getDeckSlug]);
+  }, [currentQuestion?.id, ttsEnabled, phase, playPrerecordedAudio, lobbyConfig, getDeckSlug]);
 
-  // Play deck introduction audio when entering ANSWERING phase
+  // Play deck introduction audio when entering INTRO phase
   useEffect(() => {
-    if (ttsEnabled && phase === GamePhase.ANSWERING && currentQuestionIndex === 0 && lobbyConfig?.deck) {
+    if (ttsEnabled && phase === GamePhase.INTRO && lobbyConfig?.deck) {
       const deck = getDeck(lobbyConfig.deck);
       if (deck?.introAudioFile) {
         const deckSlug = getDeckSlug(lobbyConfig.deck);
         const introUrl = `/decks/${deckSlug}/${deck.introAudioFile}`;
-        // Play intro audio, then the first question will play after
         playPrerecordedAudio(introUrl);
       }
     }
-  }, [phase, currentQuestionIndex, ttsEnabled, lobbyConfig, getDeckSlug, playPrerecordedAudio]);
+  }, [phase, ttsEnabled, lobbyConfig, getDeckSlug, playPrerecordedAudio]);
 
   // Stop TTS and reset ready state when leaving RESULTS phase
   useEffect(() => {
@@ -437,6 +447,14 @@ export default function App() {
       setResultsReadyCount(0);
     }
   }, [phase, ttsStop]);
+
+  // Reset intro ready state when leaving INTRO phase
+  useEffect(() => {
+    if (phase !== GamePhase.INTRO) {
+      setIsCurrentUserIntroReady(false);
+      setIntroReadyCount(0);
+    }
+  }, [phase]);
 
   // Toggle handler
   const handleTTSToggle = useCallback(() => {
@@ -458,6 +476,14 @@ export default function App() {
       setIsCurrentUserReady(true);
     }
   }, [isCurrentUserReady, sendMessage]);
+
+  // Handle intro ready
+  const handleIntroReady = useCallback(() => {
+    if (!isCurrentUserIntroReady && sendMessage) {
+      sendMessage({ type: "INTRO_READY" });
+      setIsCurrentUserIntroReady(true);
+    }
+  }, [isCurrentUserIntroReady, sendMessage]);
 
   // If no roomId in URL, show create lobby view
   if (!roomId) {
@@ -524,6 +550,23 @@ export default function App() {
               onStartGame={handleStartGame}
               onCopyLink={handleCopyRoomLink}
             />
+          )}
+          {phase === GamePhase.INTRO && (
+            <>
+              <TTSToggle
+                enabled={ttsEnabled}
+                ttsState={ttsState}
+                onToggle={handleTTSToggle}
+              />
+              <IntroView
+                introduction={getDeck(lobbyConfig?.deck || "")?.introduction || ""}
+                deckName={lobbyConfig?.deck || ""}
+                readyCount={introReadyCount}
+                totalPlayers={introTotalPlayers}
+                isCurrentUserReady={isCurrentUserIntroReady}
+                onIntroReady={handleIntroReady}
+              />
+            </>
           )}
           {phase === GamePhase.ANSWERING && (
             <>
