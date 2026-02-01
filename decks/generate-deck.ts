@@ -19,18 +19,39 @@
 
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
 
 // Load environment variables from .env file
-const envPath = path.join(__dirname, "..", ".env");
-if (fs.existsSync(envPath)) {
-  const envContent = fs.readFileSync(envPath, "utf-8");
-  for (const line of envContent.split("\n")) {
-    const [key, ...valueParts] = line.split("=");
-    if (key && valueParts.length > 0) {
-      process.env[key.trim()] = valueParts.join("=").trim();
+function loadEnv() {
+  // Try multiple possible locations for .env
+  const possiblePaths = [
+    path.join(process.cwd(), ".env"),
+    path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".env"),
+  ];
+
+  for (const envPath of possiblePaths) {
+    if (fs.existsSync(envPath)) {
+      console.log(`📄 Loading environment from: ${envPath}`);
+      const envContent = fs.readFileSync(envPath, "utf-8");
+      for (const line of envContent.split("\n")) {
+        const trimmedLine = line.trim();
+        if (!trimmedLine || trimmedLine.startsWith("#")) continue;
+        const equalIndex = trimmedLine.indexOf("=");
+        if (equalIndex > 0) {
+          const key = trimmedLine.slice(0, equalIndex).trim();
+          const value = trimmedLine.slice(equalIndex + 1).trim();
+          if (key && value) {
+            process.env[key] = value;
+          }
+        }
+      }
+      return true;
     }
   }
+  return false;
 }
+
+loadEnv();
 
 // API Configuration
 const MINIMAX_API_URL = "https://api.minimax.io/v1/text/chatcompletion_v2";
@@ -240,6 +261,23 @@ async function main() {
   console.log("================");
   console.log(`Theme: ${theme}`);
   console.log(`Questions: ${questions}`);
+
+  // Validate API keys early
+  if (!process.env.MINIMAX_API_KEY) {
+    throw new Error(
+      "MINIMAX_API_KEY not found.\n" +
+      "Make sure your .env file exists in the project root and contains:\n" +
+      "MINIMAX_API_KEY=your-api-key"
+    );
+  }
+  if (!process.env.HUME_API_KEY) {
+    throw new Error(
+      "HUME_API_KEY not found.\n" +
+      "Make sure your .env file exists in the project root and contains:\n" +
+      "HUME_API_KEY=your-api-key"
+    );
+  }
+  console.log("✅ API keys loaded");
 
   // Step 1: Generate deck content
   const deck = await generateDeckContent(theme, questions);
