@@ -12,7 +12,7 @@ import { GamePhase } from "@/types/game";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useGameState } from "@/hooks/useGameState";
 import { useTTS } from "@/hooks/useTTS";
-import { getTotalPlayers } from "@/services/gameService";
+import { getTotalPlayers, hasUserAnsweredQuestion } from "@/services/gameService";
 import { generateRoomId, getRoomIdFromUrl, setRoomIdInUrl, getRoomLink } from "@/lib/roomUtils";
 import { Button } from "@/components/ui/button";
 import type { ServerMessage, TTSResponseMessage, ReadyStatusMessage, NudgeMessage, ChatMessageSend, ChatCloseRequestMessage } from "@/types/messages";
@@ -493,60 +493,65 @@ export default function App() {
           <div className="cursors" aria-hidden>
             {Object.entries(users)
               .filter(([id]) => id !== myId)
-              .map(
-                ([id, u]) =>
-                  u.x != null &&
-                  u.y != null && (
+              .map(([id, u]) => {
+                if (u.x == null || u.y == null) return null;
+                
+                const hasAnswered = phase === GamePhase.ANSWERING && 
+                  currentQuestion && 
+                  hasUserAnsweredQuestion(currentQuestion.id, u.name, answeredBy);
+                const cooldownCheck = (nudgeCooldowns[id] ?? 0) > Date.now();
+                
+                return (
+                  <div
+                    key={id}
+                    className="cursor-wrapper clickable"
+                    style={{
+                      left: u.x,
+                      top: u.y,
+                    } as React.CSSProperties}
+                    onClick={() => handleNudge(id)}
+                    title={
+                      cooldownCheck
+                        ? "Wait before nudging again"
+                        : `Click to nudge ${u.name}`
+                    }
+                  >
                     <div
-                      key={id}
-                      className="cursor-wrapper clickable"
-                      style={{
-                        left: u.x,
-                        top: u.y,
-                      } as React.CSSProperties}
-                      onClick={() => handleNudge(id)}
-                      title={
-                        (nudgeCooldowns[id] ?? 0) > Date.now()
-                          ? "Wait before nudging again"
-                          : `Click to nudge ${u.name}`
+                      className={`cursor ${cooldownCheck ? 'on-cooldown' : ''} ${hasAnswered ? 'answered' : ''}`}
+                      style={
+                        {
+                          "--color": u.color,
+                          "--velocity": u.velocity,
+                        } as React.CSSProperties
                       }
                     >
-                      <div
-                        className={`cursor ${(nudgeCooldowns[id] ?? 0) > Date.now() ? 'on-cooldown' : ''}`}
-                        style={
-                          {
-                            "--color": u.color,
-                            "--velocity": u.velocity,
-                          } as React.CSSProperties
-                        }
+                      <svg
+                        className="cursor-icon"
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="32"
+                        height="32"
+                        viewBox="0 0 24 24"
                       >
-                        <svg
-                          className="cursor-icon"
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="32"
-                          height="32"
-                          viewBox="0 0 24 24"
-                        >
-                          {/* Background layer - blocks content */}
-                          <path
-                            fill="hsl(var(--flexoki-bg))"
-                            stroke="none"
-                            d={CURSOR_PATH}
-                          />
-                          {/* Foreground layer - colored outline */}
-                          <path
-                            fill="none"
-                            stroke={u.color}
-                            strokeWidth={2}
-                            strokeLinejoin="round"
-                            d={CURSOR_PATH}
-                          />
-                        </svg>
-                        <span className="cursor-name">{u.name}</span>
-                      </div>
+                        {/* Background layer - blocks content */}
+                        <path
+                          fill="hsl(var(--flexoki-bg))"
+                          stroke="none"
+                          d={CURSOR_PATH}
+                        />
+                        {/* Foreground layer - colored outline */}
+                        <path
+                          fill="none"
+                          stroke={u.color}
+                          strokeWidth={2}
+                          strokeLinejoin="round"
+                          d={CURSOR_PATH}
+                        />
+                      </svg>
+                      <span className="cursor-name">{u.name}</span>
                     </div>
-                  )
-              )}
+                  </div>
+                );
+              })}
           </div>
         </div>
       </div>
@@ -554,22 +559,26 @@ export default function App() {
       {/* Local player cursor - rendered like remote cursors for consistency */}
       {displayName && 
         displayColor && 
-        mousePosition && (
-        <div
-          className="local-cursor-wrapper"
-          style={{
-            left: mousePosition.x,
-            top: mousePosition.y,
-          }}
-        >
-          <div
-            className="cursor"
-            style={{
-              "--color": displayColor,
-              "--velocity": 0,
-              transform: isClicking ? "scale(0.85)" : "scale(1)",
-            } as React.CSSProperties}
-          >
+        mousePosition && (() => {
+          const hasAnswered = phase === GamePhase.ANSWERING && 
+            currentQuestion && 
+            hasUserAnsweredQuestion(currentQuestion.id, displayName, answeredBy);
+          return (
+            <div
+              className="local-cursor-wrapper"
+              style={{
+                left: mousePosition.x,
+                top: mousePosition.y,
+              }}
+            >
+              <div
+                className={`cursor ${hasAnswered ? 'answered' : ''}`}
+                style={{
+                  "--color": displayColor,
+                  "--velocity": 0,
+                  transform: isClicking ? "scale(0.85)" : "scale(1)",
+                } as React.CSSProperties}
+              >
             <svg
               className="cursor-icon"
               xmlns="http://www.w3.org/2000/svg"
@@ -593,9 +602,10 @@ export default function App() {
               />
             </svg>
             <span className="cursor-name">{displayName}</span>
-          </div>
-        </div>
-      )}
+              </div>
+            </div>
+          );
+        })()}
       
       {/* Show nudge notification as fixed top-center banner */}
       {myId && users[myId]?.nudgeNotification && (

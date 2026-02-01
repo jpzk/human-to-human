@@ -68,8 +68,71 @@ function randomName(): string {
   return `${pick(ADJECTIVES)} ${pick(NOUNS)}`;
 }
 
-function randomColor(): string {
-  return pick(FLEXOKI_200);
+// Color conversion utilities for generating unique color variants
+function hexToHSL(hex: string): [number, number, number] {
+  // Remove # if present
+  hex = hex.replace('#', '');
+  
+  // Parse RGB
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+  
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h: number, s: number, l: number;
+  
+  l = (max + min) / 2;
+  
+  if (max === min) {
+    h = s = 0; // achromatic
+  } else {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+      default: h = 0;
+    }
+  }
+  
+  return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+  h = h / 360;
+  s = s / 100;
+  l = l / 100;
+  
+  let r: number, g: number, b: number;
+  
+  if (s === 0) {
+    r = g = b = l; // achromatic
+  } else {
+    const hue2rgb = (p: number, q: number, t: number) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  
+  const toHex = (x: number) => {
+    const hex = Math.round(x * 255).toString(16);
+    return hex.length === 1 ? '0' + hex : hex;
+  };
+  
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
 }
 
 // Nudge configuration
@@ -138,10 +201,51 @@ export default class GameServer implements Party.Server {
     }
   }
 
+  /**
+   * Gets a unique color for a new player.
+   * Prioritizes unused colors from the base FLEXOKI_200 palette to maintain theme consistency.
+   * When all base colors are taken, generates variants by rotating hue while preserving saturation and lightness.
+   * Guarantees no duplicate colors by checking against all currently used colors.
+   */
+  private getUniqueColor(): string {
+    // Get all currently used colors
+    const usedColors = new Set<string>();
+    for (const user of this.users.values()) {
+      usedColors.add(user.color);
+    }
+
+    // First, try to use an unused color from the base palette (preserves original theme)
+    for (const baseColor of FLEXOKI_200) {
+      if (!usedColors.has(baseColor)) {
+        return baseColor;
+      }
+    }
+
+    // All base colors are taken - generate a variant
+    // Use the number of users to determine which base color to vary and how much
+    const userCount = this.users.size;
+    const baseColorIndex = userCount % FLEXOKI_200.length;
+    let variantIndex = Math.floor(userCount / FLEXOKI_200.length);
+    const baseColor = FLEXOKI_200[baseColorIndex];
+    
+    // Rotate hue by 30° increments for each variant
+    // Keep generating variants until we find one that's not in use (ensures no duplicates)
+    let variantColor: string;
+    do {
+      const [h, s, l] = hexToHSL(baseColor);
+      const hueRotation = variantIndex * 30;
+      const newHue = (h + hueRotation) % 360;
+      variantColor = hslToHex(newHue, s, l);
+      variantIndex++;
+    } while (usedColors.has(variantColor));
+    
+    return variantColor;
+  }
+
   onConnect(connection: Party.Connection, _ctx: Party.ConnectionContext): void {
-    // Assign random name and color
+    // Assign random name and unique color
     const name = randomName();
-    const color = randomColor();
+    const color = this.getUniqueColor();
     this.users.set(connection.id, { name, color, answers: new Map() });
 
     // Broadcast join to others

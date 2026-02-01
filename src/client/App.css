@@ -58,6 +58,11 @@
   cursor: not-allowed;
 }
 
+.cursor.answered {
+  filter: drop-shadow(0 0 10px rgba(74, 222, 128, 0.35)) 
+          drop-shadow(0 0 5px rgba(74, 205, 222, 0.35));
+}
+
 .cursor-icon {
   flex-shrink: 0;
 }
