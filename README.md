@@ -20,14 +20,58 @@ Once you're done reading about your compatibility scores (which are definitely n
 
 ## Prerequisites
 
-- Node.js (version 18+ should work, but we're not your Node.js therapist)
-- npm or yarn (we don't judge your package manager choices)
+- **Docker** and **Docker Compose** (required—this is a Docker project)
 - A MiniMax API key (set `MINIMAX_API_KEY` in `.env` if you want AI-generated stories; otherwise it'll use perfectly fine fallback templates that won't judge you)
-- Docker (optional, but recommended if you like your dependencies contained and your sanity preserved)
+
+> **Note**: While you *can* run this without Docker (Node.js 18+, npm/yarn), we recommend using Docker. It handles all dependencies, ensures consistent environments, and saves you from the "it works on my machine" conversation.
 
 ## Getting Started
 
-### Development
+This project uses Docker for development and production. All common tasks are handled through the Makefile.
+
+### Quick Start
+
+```bash
+# Start the development environment
+make up
+```
+
+The app will be available at `http://localhost:5173`. PartyKit runs separately on its own port because microservices are a thing now, and we're going with it.
+
+### Makefile Commands
+
+The project includes a Makefile with convenient commands for common tasks:
+
+#### Development Commands
+
+- **`make up`** - Start the development container (builds if needed)
+- **`make up-d`** - Start in detached mode (runs in background)
+- **`make down`** - Stop the container
+- **`make restart`** - Restart the container
+- **`make logs`** - View container logs (follow mode)
+- **`make shell`** - Open a shell inside the running container
+- **`make build`** - Build the Docker image
+- **`make clean`** - Remove containers, networks, and volumes
+- **`make prune`** - Remove all unused Docker resources (use with caution)
+- **`make install`** - Rebuild node_modules volume (useful after adding dependencies)
+- **`make npm <command>`** - Run npm commands inside the container (e.g., `make npm install express`)
+
+#### Deck Generation
+
+- **`make generate-deck THEME="theme-name" QUESTIONS=10`** - Generate a new deck with TTS audio
+  - Example: `make generate-deck THEME="friends" QUESTIONS=10`
+  - Optional: `VOICE="voice-id"` to specify a voice
+
+#### Production Deployment
+
+- **`make production`** - Deploy to production (run on your production server)
+  - Pulls latest code from git
+  - Builds and starts production containers
+  - Cleans up old Docker images
+
+### Running Without Docker (Not Recommended)
+
+If you really want to run it without Docker:
 
 ```bash
 # Install dependencies
@@ -36,23 +80,11 @@ npm install
 # Run dev server (Vite + PartyKit)
 npm run dev
 
-# Or use Docker like a normal person
-make up
-```
-
-The app will be available at `http://localhost:5173` (or whatever port Vite decides to use—it's like a surprise party, but for ports). PartyKit runs separately on its own port because microservices are a thing now, and we're going with it.
-
-### Building
-
-```bash
+# Build for production
 npm run build
 ```
 
 This creates a `dist/` folder full of optimized files that you can serve however you want. PartyKit will serve it if you're using their platform, or you can use nginx, Caddy, or whatever web server you trust. We're not picky.
-
-### Production
-
-There's a `docker-compose.prod.yml` file because we need separate configs for dev and prod (one for chaos, one for slightly less chaos). Run `make production` on your server (or manually do what that Makefile target does if you're feeling adventurous). It'll pull from git, build everything, and deploy. It's like having a helpful robot assistant, but it's just a Makefile.
 
 ## Project Structure
 
