@@ -1,8 +1,6 @@
-import { getDecks, getDeck as getStaticDeck, type Deck, type Card } from "../lib/decks";
+import { getDeck as getStaticDeck, type Deck, type Card } from "../lib/decks";
 import type { Question } from "../types/game";
 import { QuestionType } from "../types/game";
-
-export type DeckInfo = { name: string };
 
 // Adapter: convert Card → Question
 function cardToQuestion(card: Card): Question {
@@ -49,10 +47,6 @@ function cardToQuestion(card: Card): Question {
 
 export function deckToQuestions(deck: Deck): Question[] {
   return deck.cards.map(cardToQuestion);
-}
-
-export function listDecks(): DeckInfo[] {
-  return getDecks().map((d) => ({ name: d.deck_name }));
 }
 
 export function getDeck(name: string): Deck | undefined {

@@ -18,7 +18,6 @@ type WaitingLobbyViewProps = {
 };
 
 const DECK_LABELS: Record<string, string> = {
-  "Old Fashioned": "Old Fashioned",
   "Friendship Fortunes": "Friendship Fortunes",
   "Love in Harmony": "Love in Harmony",
   "Whispers of the Heart": "Whispers of the Heart",

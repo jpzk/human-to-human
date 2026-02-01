@@ -6,7 +6,6 @@ type CreateLobbyViewProps = {
 };
 
 const DECKS = [
-  { value: "Old Fashioned", label: "Old Fashioned" },
   { value: "Friendship Fortunes", label: "Friendship Fortunes" },
   { value: "Love in Harmony", label: "Love in Harmony" },
   { value: "Whispers of the Heart", label: "Whispers of the Heart" },
@@ -14,7 +13,7 @@ const DECKS = [
 ];
 
 export function CreateLobbyView({ onCreateLobby }: CreateLobbyViewProps) {
-  const [deck, setDeck] = useState("Old Fashioned");
+  const [deck, setDeck] = useState("Friendship Fortunes");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

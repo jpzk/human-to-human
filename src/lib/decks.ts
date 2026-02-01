@@ -29,62 +29,8 @@ import loveInHarmony from "./decks-data/love-in-harmony.json";
 import whispersOfTheHeart from "./decks-data/whispers-of-the-heart.json";
 import officeAllies from "./decks-data/office-allies.json";
 
-const hardcodedDecks: Deck[] = [
-  {
-    deck_name: "Old Fashioned",
-    cards: [
-      {
-        card_name: "happiness",
-        question: "What makes you happy in life?",
-        type: "buttons",
-        answers: [
-          "Time with friends",
-          "Working on my goals",
-          "Good food",
-          "Seeing new places",
-        ],
-      },
-      {
-        card_name: "focus_strengths_vs_weaknesses",
-        question: "I tend to focus on my...",
-        type: "slider",
-        answers: ["Weaknesses", "Strengths"],
-      },
-      {
-        card_name: "inspiration",
-        question: "Where do you get inspiration from?",
-        type: "buttons",
-        answers: [
-          "Other humans",
-          "Time in Nature",
-          "My hobbies",
-          "Beautiful things",
-        ],
-      },
-      {
-        card_name: "past_vs_future",
-        question: "I tend to...",
-        type: "slider",
-        answers: ["Reflect on the past", "Envision the future"],
-      },
-      {
-        card_name: "fear",
-        question: "What are you most scared of?",
-        type: "buttons",
-        answers: [
-          "Public speaking",
-          "Asking someone for a date",
-          "Making big life decisions",
-          "Admitting a mistake",
-        ],
-      },
-    ],
-  },
-];
-
-// Combine hardcoded and pre-generated decks
+// All decks are pre-generated with audio files
 const allDecks: Deck[] = [
-  ...hardcodedDecks,
   friendshipFortunes as Deck,
   loveInHarmony as Deck,
   whispersOfTheHeart as Deck,
