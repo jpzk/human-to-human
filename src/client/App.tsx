@@ -408,6 +408,15 @@ export default function App() {
   if (!roomId) {
     return (
       <div className="viewport-container">
+        <img 
+          src="/logo-name.png" 
+          alt="Logo" 
+          className="absolute logo-muted" 
+          style={{ 
+            height: `${32 * scale}px`,
+            top: `calc(50% - ${(VIEWPORT_H * scale) / 2 + 48 * scale}px)`
+          }} 
+        />
         <div
           className="viewport"
           style={{
@@ -425,6 +434,17 @@ export default function App() {
   return (
     <>
       <div className="viewport-container" style={cursorStyle}>
+        {phase === GamePhase.LOBBY && (
+          <img 
+            src="/logo-name.png" 
+            alt="Logo" 
+            className="absolute logo-muted" 
+            style={{ 
+              height: `${32 * scale}px`,
+              top: `calc(50% - ${(VIEWPORT_H * scale) / 2 + 48 * scale}px)`
+            }} 
+          />
+        )}
         <div
           ref={viewportRef}
           className="viewport"

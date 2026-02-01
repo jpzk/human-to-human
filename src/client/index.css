@@ -28,7 +28,7 @@
 
 /* Flexoki palette – https://gist.github.com/phenomen/affd8c346538378548febd20dccdbfcc */
 :root {
-  --flexoki-bg: 48 100% 97%;
+  --flexoki-bg: 60 16% 96%;  /* #f7f7f4 */
   --flexoki-bg-2: 51 33% 92%;
   --flexoki-ui: 51 21% 88%;
   --flexoki-ui-2: 50 14% 83%;
@@ -54,6 +54,7 @@
 :root {
   --radius: 0.5rem;
   --ui-scale: 1.25; /* Global UI scale factor - adjust to make everything bigger/smaller */
+  --signature-gradient: linear-gradient(90deg, #f09a85 0%, #d4b3d5 35%, #b8c8dc 55%, #7dd4c0 100%);
   --background: hsl(var(--flexoki-bg));
   --foreground: hsl(var(--flexoki-tx));
   --card: hsl(var(--flexoki-bg));
@@ -83,6 +84,18 @@
   select:not(:disabled) {
     cursor: inherit;
   }
+}
+
+/* Signature gradient button style */
+.btn-signature-gradient {
+  background: var(--signature-gradient);
+  color: hsl(var(--flexoki-tx));
+}
+
+/* Logo tint to match border color (--flexoki-ui-3: 55 10% 79%) */
+.logo-muted {
+  filter: grayscale(1) brightness(1.8) contrast(0.5);
+  opacity: 0.8;
 }
 
 * {

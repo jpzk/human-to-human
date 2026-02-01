@@ -1,0 +1,115 @@
+{
+  "deck_name": "Whispers of the Heart",
+  "introduction": "Step into a world where love knows no bounds and whispers of the heart guide your journey. This deck celebrates the timeless dance of connection and the beautiful stories that unfold between soulmates.",
+  "cards": [
+    {
+      "card_name": "favorite_date_night",
+      "question": "Alright, let's dive in... What's your idea of the perfect date night?",
+      "type": "buttons",
+      "answers": [
+        "Cooking together at home",
+        "Exploring a new city",
+        "Watching a movie at home",
+        "Going to a fancy restaurant"
+      ],
+      "audioFile": "q1_favorite_date_night.mp3"
+    },
+    {
+      "card_name": "morning_person_vs_night_owl",
+      "question": "Are you more of a morning person or a night owl with your lover?",
+      "type": "slider",
+      "answers": [
+        "Total morning person",
+        "Dedicated night owl"
+      ],
+      "audioFile": "q2_morning_person_vs_night_owl.mp3"
+    },
+    {
+      "card_name": "romantic_gesture_preference",
+      "question": "Are you more charmed by grand romantic gestures or thoughtful little surprises from your lover?",
+      "type": "slider",
+      "answers": [
+        "Grand gestures",
+        "Thoughtful little surprises"
+      ],
+      "audioFile": "q3_romantic_gesture_preference.mp3"
+    },
+    {
+      "card_name": "love_language_preference",
+      "question": "This one might surprise you... What's your love language with your partner?",
+      "type": "buttons",
+      "answers": [
+        "Words of affirmation",
+        "Quality time",
+        "Receiving gifts",
+        "Physical touch"
+      ],
+      "audioFile": "q4_love_language_preference.mp3"
+    },
+    {
+      "card_name": "love_priorities",
+      "question": "When it comes to your lover, what's your top priority?",
+      "type": "buttons",
+      "answers": [
+        "Emotional connection",
+        "Adventure and excitement",
+        "Stability and comfort",
+        "Shared goals and growth"
+      ],
+      "audioFile": "q5_love_priorities.mp3"
+    },
+    {
+      "card_name": "adventure_vs_comfort",
+      "question": "Are you more drawn to thrilling adventures or cozy nights in with your lover?",
+      "type": "slider",
+      "answers": [
+        "Adventure",
+        "Cozy Nights In"
+      ],
+      "audioFile": "q6_adventure_vs_comfort.mp3"
+    },
+    {
+      "card_name": "intimacy_vs_independence",
+      "question": "Are you more inclined to seek constant closeness or cherish your independence within the relationship?",
+      "type": "slider",
+      "answers": [
+        "Constant closeness",
+        "Cherish independence"
+      ],
+      "audioFile": "q7_intimacy_vs_independence.mp3"
+    },
+    {
+      "card_name": "fears_in_love",
+      "question": "What's one fear you secretly carry about your relationship?",
+      "type": "buttons",
+      "answers": [
+        "Fear of growing apart",
+        "Fear of losing independence",
+        "Fear of not being enough",
+        "Fear of betrayal"
+      ],
+      "audioFile": "q8_fears_in_love.mp3"
+    },
+    {
+      "card_name": "risk_taker_or_risk_averse",
+      "question": "Are you more of a risk taker or risk averse in matters of the heart?",
+      "type": "slider",
+      "answers": [
+        "I dive in headfirst",
+        "I tread carefully"
+      ],
+      "audioFile": "q9_risk_taker_or_risk_averse.mp3"
+    },
+    {
+      "card_name": "vulnerability_vs_protection",
+      "question": "Alright, let's get real... Do you tend to open up emotionally or protect your heart when things get tough with your lover?",
+      "type": "slider",
+      "answers": [
+        "I open up vulnerably",
+        "I protect my heart"
+      ],
+      "audioFile": "q10_vulnerability_vs_protection.mp3"
+    }
+  ],
+  "introAudioFile": "intro.mp3"
+}

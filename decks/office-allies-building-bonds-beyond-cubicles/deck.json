@@ -1,0 +1,121 @@
+{
+  "deck_name": "Office Allies: Building Bonds Beyond Cubicles",
+  "introduction": "Welcome to the world where coffee runs and team meetings create unexpected friendships. Let's dive into the stories and secrets of those who share the workspace and discover the magic of camaraderie amidst the hustle.",
+  "cards": [
+    {
+      "card_name": "early_bird_or_night_owl",
+      "question": "Are you more of an early bird or a night owl when it comes to work?",
+      "type": "slider",
+      "answers": [
+        "Early bird",
+        "Night owl"
+      ],
+      "audioFile": "q1_early_bird_or_night_owl.mp3"
+    },
+    {
+      "card_name": "coffee_break_choice",
+      "question": "Alright, where would you rather chat over coffee?",
+      "type": "buttons",
+      "answers": [
+        "The office kitchen",
+        "A nearby café",
+        "The park",
+        "A virtual coffee break"
+      ],
+      "audioFile": "q2_coffee_break_choice.mp3"
+    },
+    {
+      "card_name": "coffee_break_preference",
+      "question": "Alright, let's spill the tea - what's your ideal coffee break spot?",
+      "type": "buttons",
+      "answers": [
+        "The office kitchen",
+        "A nearby café",
+        "Outside in the fresh air",
+        "A cozy corner of the office"
+      ],
+      "audioFile": "q3_coffee_break_preference.mp3"
+    },
+    {
+      "card_name": "dream_career_switch",
+      "question": "Playful thought: If you could switch careers with any co-worker for a day, who would it be and why?",
+      "type": "buttons",
+      "answers": [
+        "The creative designer",
+        "The number-crunching accountant",
+        "The smooth-talking salesperson",
+        "The tech-savvy IT expert"
+      ],
+      "audioFile": "q4_dream_career_switch.mp3"
+    },
+    {
+      "card_name": "future_goals",
+      "question": "Alright, let's dream big - what's one career goal you hope to achieve together with your team?",
+      "type": "buttons",
+      "answers": [
+        "Lead a big project",
+        "Get a big promotion",
+        "Start a new initiative",
+        "Win a team award"
+      ],
+      "audioFile": "q5_future_goals.mp3"
+    },
+    {
+      "card_name": "work_life_balance",
+      "question": "Are you more of a workaholic or a work-life balance advocate?",
+      "type": "slider",
+      "answers": [
+        "Definitely a workaholic",
+        "Strictly a work-life balance advocate"
+      ],
+      "audioFile": "q6_work_life_balance.mp3"
+    },
+    {
+      "card_name": "deep_work_struggle",
+      "question": "Alright, here's a vulnerable one - what's one work-related struggle you secretly hope your co-workers never find out about?",
+      "type": "buttons",
+      "answers": [
+        "I struggle with time management",
+        "I have imposter syndrome",
+        "I find it hard to ask for help",
+        "I get anxious about public speaking"
+      ],
+      "audioFile": "q7_deep_work_struggle.mp3"
+    },
+    {
+      "card_name": "deepest_work_regret",
+      "question": "Alright, time for a heart-to-heart - what's one work regret you wish you could go back and change?",
+      "type": "buttons",
+      "answers": [
+        "Not speaking up about an issue",
+        "Missing a career opportunity",
+        "Not supporting a colleague",
+        "Burning out from overworking"
+      ],
+      "audioFile": "q8_deepest_work_regret.mp3"
+    },
+    {
+      "card_name": "workplace_fear",
+      "question": "Alright, time to open up - what's one workplace fear that keeps you up at night?",
+      "type": "buttons",
+      "answers": [
+        "Not meeting expectations",
+        "Being replaced or laid off",
+        "Public speaking or presentations",
+        "Conflict with colleagues"
+      ],
+      "audioFile": "q9_workplace_fear.mp3"
+    },
+    {
+      "card_name": "vulnerability_at_work",
+      "question": "Alright, let's dive deep - would you rather be seen as highly competent or deeply caring by your co-workers?",
+      "type": "slider",
+      "answers": [
+        "Highly competent",
+        "Deeply caring"
+      ],
+      "audioFile": "q10_vulnerability_at_work.mp3"
+    }
+  ],
+  "introAudioFile": "intro.mp3"
+}

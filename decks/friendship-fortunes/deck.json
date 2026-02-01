@@ -1,0 +1,123 @@
+{
+  "deck_name": "Friendship Fortunes",
+  "introduction": "Welcome to Friendship Fortunes! Let's explore the bonds that unite us, share stories of camaraderie, and discover the magic of true friendship. Get ready to connect, laugh, and cherish the moments that make life wonderful.",
+  "cards": [
+    {
+      "card_name": "coffee_or_tea",
+      "question": "Alright, let's start with a classic... Are you more of a coffee or tea friend?",
+      "type": "buttons",
+      "answers": [
+        "Coffee all the way",
+        "Tea is my jam",
+        "I need both",
+        "Neither, I'm a water person"
+      ],
+      "audioFile": "q1_coffee_or_tea.mp3"
+    },
+    {
+      "card_name": "favorite_hobby",
+      "question": "Alright, let's dive in... What's your go-to hobby when you're hanging out with friends?",
+      "type": "buttons",
+      "answers": [
+        "Cooking or baking",
+        "Playing board games",
+        "Watching movies",
+        "Going for a walk or hike"
+      ],
+      "audioFile": "q2_favorite_hobby.mp3"
+    },
+    {
+      "card_name": "movie_night_pick",
+      "question": "Alright, movie night! What kind of film do you always pick for friends?",
+      "type": "buttons",
+      "answers": [
+        "Action/Adventure",
+        "Romantic Comedy",
+        "Horror/Thriller",
+        "Documentary"
+      ],
+      "audioFile": "q3_movie_night_pick.mp3"
+    },
+    {
+      "card_name": "friends_dream_vacation",
+      "question": "Alright, let's dream big... Where would you whisk your friends away for the ultimate vacation?",
+      "type": "buttons",
+      "answers": [
+        "Tropical beach",
+        "Mountain retreat",
+        "City exploration",
+        "Cultural adventure"
+      ],
+      "audioFile": "q4_friends_dream_vacation.mp3"
+    },
+    {
+      "card_name": "adventure_vs_comfort",
+      "question": "Would your friends say you're more likely to plan an epic adventure or a cozy night in?",
+      "type": "slider",
+      "answers": [
+        "Epic Adventure",
+        "Cozy Night In"
+      ],
+      "audioFile": "q5_adventure_vs_comfort.mp3"
+    },
+    {
+      "card_name": "secret_talent",
+      "question": "Alright, time to brag a little... What's a secret talent you have that your friends might not know about?",
+      "type": "buttons",
+      "answers": [
+        "I can solve a Rubik's cube in under a minute",
+        "I can perfectly mimic animal sounds",
+        "I can play a musical instrument no one knows about",
+        "I can name all the countries in the world"
+      ],
+      "audioFile": "q6_secret_talent.mp3"
+    },
+    {
+      "card_name": "emotional_support_preference",
+      "question": "When life gets tough, do you prefer your friends to listen quietly or give advice?",
+      "type": "slider",
+      "answers": [
+        "Quiet listener",
+        "Advice giver"
+      ],
+      "audioFile": "q7_emotional_support_preference.mp3"
+    },
+    {
+      "card_name": "friendship_regret",
+      "question": "This one might surprise you... What's one thing you wish you could apologize to a friend for but haven't?",
+      "type": "buttons",
+      "answers": [
+        "Not being there when they needed me most",
+        "Saying something hurtful in the past",
+        "Not keeping in touch after a fight",
+        "Choosing someone else over them"
+      ],
+      "audioFile": "q8_friendship_regret.mp3"
+    },
+    {
+      "card_name": "vulnerability_with_friends",
+      "question": "This one might hit close to home... What's something you're afraid to open up about with your friends?",
+      "type": "buttons",
+      "answers": [
+        "My fears about the future",
+        "My personal insecurities",
+        "My family issues",
+        "My romantic struggles"
+      ],
+      "audioFile": "q9_vulnerability_with_friends.mp3"
+    },
+    {
+      "card_name": "deepest_fear_revealed",
+      "question": "This one's for the soul... What's your biggest fear in your friendships that you've never shared?",
+      "type": "buttons",
+      "answers": [
+        "Being abandoned or forgotten",
+        "Not being truly understood",
+        "Losing someone close to me",
+        "Being betrayed by a friend"
+      ],
+      "audioFile": "q10_deepest_fear_revealed.mp3"
+    }
+  ],
+  "introAudioFile": "intro.mp3"
+}

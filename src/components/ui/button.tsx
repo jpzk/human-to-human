@@ -9,7 +9,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow",
+          "btn-signature-gradient shadow",
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm",
         outline:

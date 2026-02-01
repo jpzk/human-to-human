@@ -29,7 +29,7 @@ export function CreateLobbyView({ onCreateLobby }: CreateLobbyViewProps) {
     <div className="flex items-center justify-center h-full w-full bg-background">
       <div className="w-full max-w-md px-8 py-12 space-y-8">
         <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold">Create a Lobby</h1>
+          <h1 className="text-4xl font-bold">Create a Group</h1>
           <p className="text-muted-foreground">
             Configure your quiz deck and invite others to join
           </p>
@@ -57,7 +57,7 @@ export function CreateLobbyView({ onCreateLobby }: CreateLobbyViewProps) {
           </div>
 
           <Button type="submit" className="w-full" size="lg" effect="expand">
-            Create Lobby
+            Create Group
           </Button>
         </form>
       </div>

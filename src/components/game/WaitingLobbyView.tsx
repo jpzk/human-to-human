@@ -50,7 +50,7 @@ export function WaitingLobbyView({
           {/* Left side: Player list and config */}
           <div className="space-y-6">
             <div className="text-center md:text-left space-y-2">
-              <h1 className="text-4xl font-bold">Waiting for Players</h1>
+              <h1 className="text-4xl font-bold">Waiting for Friends</h1>
               <p className="text-muted-foreground">
                 Share the link to invite others
               </p>

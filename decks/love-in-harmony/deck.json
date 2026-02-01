@@ -1,0 +1,115 @@
+{
+  "deck_name": "Love in Harmony",
+  "introduction": "Welcome to a delightful exploration of love and connection. Dive into the world of couples as you uncover shared memories, dreams, and the little things that make your bond unique.",
+  "cards": [
+    {
+      "card_name": "morning_person_or_night_owl",
+      "question": "Are you a morning person or a night owl?",
+      "type": "slider",
+      "answers": [
+        "Definitely a morning person",
+        "Definitely a night owl"
+      ],
+      "audioFile": "q1_morning_person_or_night_owl.mp3"
+    },
+    {
+      "card_name": "weekend_wanderer",
+      "question": "Alright, let's see... What's your ideal weekend activity together?",
+      "type": "buttons",
+      "answers": [
+        "Exploring a new city",
+        "Relaxing at home with movies",
+        "Trying out a new hobby",
+        "Going for a nature hike"
+      ],
+      "audioFile": "q2_weekend_wanderer.mp3"
+    },
+    {
+      "card_name": "foodie_or_food_critic",
+      "question": "Alright, let's settle this - are you more of a foodie who loves to try anything, or a discerning critic who knows exactly what they like?",
+      "type": "slider",
+      "answers": [
+        "Total foodie - I'll try anything!",
+        "Critical connoisseur - I know my tastes"
+      ],
+      "audioFile": "q3_foodie_or_food_critic.mp3"
+    },
+    {
+      "card_name": "love_language",
+      "question": "What's your love language - acts of service, quality time, words of affirmation, gifts, or physical touch?",
+      "type": "buttons",
+      "answers": [
+        "Acts of service",
+        "Quality time",
+        "Words of affirmation",
+        "Physical touch"
+      ],
+      "audioFile": "q4_love_language.mp3"
+    },
+    {
+      "card_name": "future_living_style",
+      "question": "This one might surprise you... Are you more of a city dweller who loves the hustle and bustle, or a nature lover dreaming of a quiet retreat?",
+      "type": "slider",
+      "answers": [
+        "City Dweller",
+        "Nature Lover"
+      ],
+      "audioFile": "q5_future_living_style.mp3"
+    },
+    {
+      "card_name": "dream_vacation",
+      "question": "Alright, let's dream a little... Are you more of a tropical beach lounger or a culture-seeking city explorer for your ideal vacation?",
+      "type": "slider",
+      "answers": [
+        "Tropical beach lounger",
+        "Culture-seeking city explorer"
+      ],
+      "audioFile": "q6_dream_vacation.mp3"
+    },
+    {
+      "card_name": "relationship_fears",
+      "question": "Alright, let's get real... Do you fear losing your independence or losing your connection?",
+      "type": "slider",
+      "answers": [
+        "Losing independence",
+        "Losing connection"
+      ],
+      "audioFile": "q7_relationship_fears.mp3"
+    },
+    {
+      "card_name": "biggest_regret_shared",
+      "question": "This one's a deep dive... What's your biggest regret and have you ever shared it with your partner?",
+      "type": "buttons",
+      "answers": [
+        "I have shared it and they know",
+        "I haven't found the courage yet",
+        "I prefer to keep it to myself",
+        "I don't believe in regrets"
+      ],
+      "audioFile": "q8_biggest_regret_shared.mp3"
+    },
+    {
+      "card_name": "sharing_fears",
+      "question": "Alright, let's be vulnerable... What's one fear you haven't shared with your partner yet?",
+      "type": "buttons",
+      "answers": [
+        "Fear of failure",
+        "Fear of abandonment",
+        "Fear of not being good enough",
+        "Fear of losing them"
+      ],
+      "audioFile": "q9_sharing_fears.mp3"
+    },
+    {
+      "card_name": "emotional_support_vs_independence",
+      "question": "Do you need a partner who prioritizes emotional support or someone who encourages independence?",
+      "type": "slider",
+      "answers": [
+        "Emotional support",
+        "Independence"
+      ],
+      "audioFile": "q10_emotional_support_vs_independence.mp3"
+    }
+  ],
+  "introAudioFile": "intro.mp3"
+}
