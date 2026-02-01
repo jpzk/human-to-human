@@ -22,11 +22,10 @@ export function Cursor({
 }: CursorProps) {
   return (
     <div
-      className={`cursor ${isOnCooldown ? 'on-cooldown' : ''}`}
+      className={`cursor ${isOnCooldown ? 'on-cooldown' : ''} ${isClicking ? 'clicking' : ''}`}
       style={{
         "--color": color,
         "--velocity": velocity,
-        transform: isClicking ? "scale(0.85)" : undefined,
       } as React.CSSProperties}
     >
       {dropEventId !== undefined && (

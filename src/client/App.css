@@ -57,6 +57,10 @@
   opacity: 0.5;
 }
 
+.cursor.clicking .cursor-icon {
+  transform: scale(0.85);
+}
+
 /* Simple circle ripple effect - scales and fades out */
 .cursor-ripple {
   position: absolute;
@@ -86,6 +90,7 @@
   flex-shrink: 0;
   position: relative;
   z-index: 1;
+  transition: transform 0.2s ease-out;
 }
 
 .cursor-name {
