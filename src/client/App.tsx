@@ -482,6 +482,14 @@ export default function App() {
         >
           <CreateLobbyView onCreateLobby={handleCreateLobby} />
         </div>
+        <p 
+          className="absolute text-sm text-muted-foreground"
+          style={{
+            top: `calc(50% + ${(VIEWPORT_H * scale) / 2 + 16 * scale}px)`
+          }}
+        >
+          created with <span className="font-bold">Cursor</span>, <span className="font-bold">MiniMax</span> and <span className="font-bold">Hume.ai</span>
+        </p>
       </div>
     );
   }
@@ -489,17 +497,15 @@ export default function App() {
   return (
     <>
       <div className="viewport-container" style={cursorStyle}>
-        {phase === GamePhase.LOBBY && (
-          <img 
-            src="/logo-name.svg" 
-            alt="Logo" 
-            className="absolute" 
-            style={{ 
-              height: `${64 * scale}px`,
-              top: `calc(50% - ${(VIEWPORT_H * scale) / 2 + 80 * scale}px)`
-            }} 
-          />
-        )}
+        <img 
+          src="/logo-name.svg" 
+          alt="Logo" 
+          className="absolute" 
+          style={{ 
+            height: `${64 * scale}px`,
+            top: `calc(50% - ${(VIEWPORT_H * scale) / 2 + 80 * scale}px)`
+          }} 
+        />
         <div
           ref={viewportRef}
           className="viewport"
@@ -599,6 +605,14 @@ export default function App() {
               })}
           </div>
         </div>
+        <p 
+          className="absolute text-sm text-muted-foreground"
+          style={{
+            top: `calc(50% + ${(VIEWPORT_H * scale) / 2 + 16 * scale}px)`
+          }}
+        >
+          created with <span className="font-bold">Cursor</span>, <span className="font-bold">MiniMax</span> and <span className="font-bold">Hume.ai</span>
+        </p>
       </div>
       
       {/* Local player cursor - rendered like remote cursors for consistency */}
