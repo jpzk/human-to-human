@@ -13,6 +13,24 @@ HUME_API_KEY=your-hume-api-key
 
 ## Usage
 
+### Using Makefile (Recommended - runs in Docker container)
+
+```bash
+# Make sure the dev container is running first
+make up-d
+
+# Generate a deck with default 10 questions
+make generate-deck THEME="friends"
+
+# Generate a deck with custom number of questions
+make generate-deck THEME="couples" QUESTIONS=8
+
+# Generate an adventures deck with 12 questions
+make generate-deck THEME="adventures" QUESTIONS=12
+```
+
+### Direct execution (requires local Node.js and dependencies)
+
 ```bash
 # Generate a deck with default 10 questions
 npx tsx decks/generate-deck.ts --theme "friends"

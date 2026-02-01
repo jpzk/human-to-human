@@ -2,7 +2,7 @@
 # Docker Development Commands
 # ============================================
 
-.PHONY: build up down restart logs shell clean prune production
+.PHONY: build up down restart logs shell clean prune production generate-deck
 
 # Build the Docker image
 build:
@@ -48,6 +48,17 @@ install:
 # Run a one-off npm command inside the container
 npm:
 	docker compose exec app npm $(filter-out $@,$(MAKECMDGOALS))
+
+# Generate a deck with TTS audio
+# Usage: make generate-deck THEME="friends" QUESTIONS=10
+#        make generate-deck THEME="couples" QUESTIONS=8
+generate-deck:
+	@if [ -z "$(THEME)" ]; then \
+		echo "Error: THEME is required"; \
+		echo "Usage: make generate-deck THEME=\"friends\" QUESTIONS=10"; \
+		exit 1; \
+	fi
+	docker compose exec app npx tsx decks/generate-deck.ts --theme "$(THEME)" --questions $(or $(QUESTIONS),10)
 
 # Prevent make from treating arguments as targets
 %:
