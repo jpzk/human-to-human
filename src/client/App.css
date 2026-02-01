@@ -31,7 +31,7 @@
 }
 
 .cursor-wrapper.clickable {
-  cursor: pointer;
+  cursor: inherit;
 }
 
 .cursor-wrapper.clickable:hover .cursor {
@@ -55,7 +55,6 @@
 
 .cursor.on-cooldown {
   opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* Simple circle ripple effect - scales and fades out */
