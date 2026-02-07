@@ -18,7 +18,6 @@ import {
   type RevealStatusMessage,
   type RevealMutualMessage,
   type QuestionAdvanceMessage,
-  type NarrativeMessage,
   type ReadyStatusMessage,
   type IntroReadyMessage,
   type IntroReadyStatusMessage,
@@ -31,8 +30,6 @@ import {
 } from "./types/messages";
 import { GamePhase, QuestionType, type LobbyConfig, type Question } from "./types/game";
 import { getDeck, deckToQuestions } from "./services/deckService";
-import { aggregateNarrativeData, type UserAnswerData, type AnswerWithMeta } from "./services/narrativeService";
-import { generateNarrative, generateFallbackNarrative, testGeminiConnection } from "./lib/narrativeGenerator";
 import { generateConnectionInsights, generateFallbackConnectionInsight } from "./lib/connectionInsightGenerator";
 
 // Name generation
@@ -140,6 +137,14 @@ type AnswerValue =
   | { type: "choice"; answerId: string }
   | { type: "slider"; value: number };
 
+// Answer with timing metadata
+type AnswerWithMeta = {
+  value: AnswerValue;
+  timestamp: number;
+  timeToAnswer: number;
+  answerOrder: number;
+};
+
 type UserState = {
   name: string;
   color: string;
@@ -163,8 +168,6 @@ export default class GameServer implements Party.Server {
   private questions: Question[] = [];
   private questionStartTimes = new Map<string, number>(); // questionId → timestamp when shown
   private answerOrderCounters = new Map<string, number>(); // questionId → counter for answer order
-  private narrativeStory: string | null = null; // Cached narrative story
-  private narrativeGenerationPromise: Promise<void> | null = null; // Track ongoing narrative generation
   private resultsReadyPlayers = new Set<string>(); // Track who's ready on results screen
   private introReadyPlayers = new Set<string>(); // Track who's ready on intro screen
   private connectionInsights: Map<string, Map<string, string>> = new Map(); // userId → (otherUserId → reason)
@@ -178,16 +181,7 @@ export default class GameServer implements Party.Server {
   private chatMessageTimestamps = new Map<string, Map<string, number>>(); // chatId → (userId → last message timestamp)
 
   constructor(readonly room: Party.Room) {
-    // Validate API key at startup (non-blocking warning)
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.warn("[Server] GEMINI_API_KEY not set - narrative generation will use fallback");
-    } else {
-      // Test Gemini connection on startup (non-blocking)
-      testGeminiConnection(apiKey).catch((error) => {
-        console.warn("[Server] Gemini connection test failed:", error);
-      });
-    }
+    // Server initialized
   }
 
   /**
@@ -261,32 +255,6 @@ export default class GameServer implements Party.Server {
       }
     }
 
-    // If in RESULTS or REVEAL phase, send narrative if available or wait for generation
-    if (this.phase === GamePhase.RESULTS || this.phase === GamePhase.REVEAL) {
-      if (this.narrativeStory) {
-        // Narrative already generated, send immediately
-        const narrativeMsg: NarrativeMessage = {
-          type: "NARRATIVE",
-          story: this.narrativeStory,
-        };
-        connection.send(JSON.stringify(narrativeMsg));
-      } else if (this.narrativeGenerationPromise) {
-        // Narrative is still being generated, wait for it
-        this.narrativeGenerationPromise
-          .then(() => {
-            if (this.narrativeStory) {
-              const narrativeMsg: NarrativeMessage = {
-                type: "NARRATIVE",
-                story: this.narrativeStory,
-              };
-              connection.send(JSON.stringify(narrativeMsg));
-            }
-          })
-          .catch((error) => {
-            console.error("[Server] Failed to send narrative to late joiner:", error);
-          });
-      }
-    }
 
     const syncMsg: SyncMessage = {
       type: "sync",
@@ -753,12 +721,9 @@ export default class GameServer implements Party.Server {
     // Clear timing and answer tracking maps
     this.questionStartTimes.clear();
     this.answerOrderCounters.clear();
-    // Clear narrative state
-    this.narrativeStory = null;
     // Clear ready players sets
     this.resultsReadyPlayers.clear();
     this.introReadyPlayers.clear();
-    this.narrativeGenerationPromise = null;
     // Clear user answers (but keep users for lobby)
     for (const user of this.users.values()) {
       user.answers.clear();
@@ -980,121 +945,12 @@ export default class GameServer implements Party.Server {
     // Broadcast initial ready status (0 ready)
     this.broadcastReadyStatus();
 
-    // Generate and send narrative (async, non-blocking)
-    this.generateAndSendNarrative();
-
     // Generate connection insights (async, non-blocking)
     this.generateConnectionInsights().catch(err => {
       console.error("[Server] Failed to generate connection insights:", err);
     });
   }
 
-  private async generateAndSendNarrative(): Promise<void> {
-    // If already generating, don't start another
-    if (this.narrativeGenerationPromise) {
-      return;
-    }
-
-    this.narrativeGenerationPromise = (async () => {
-      try {
-        // Validate we have enough data
-        if (this.users.size < 2) {
-          console.warn("[Server] Not enough users for narrative generation:", this.users.size);
-          this.narrativeStory = "";
-          const emptyMsg: NarrativeMessage = { type: "NARRATIVE", story: "" };
-          this.room.broadcast(JSON.stringify(emptyMsg));
-          return;
-        }
-        
-        if (this.questions.length === 0) {
-          console.warn("[Server] No questions for narrative generation");
-          this.narrativeStory = "";
-          const emptyMsg: NarrativeMessage = { type: "NARRATIVE", story: "" };
-          this.room.broadcast(JSON.stringify(emptyMsg));
-          return;
-        }
-        
-        // Convert users to UserAnswerData format
-        const userAnswerData: UserAnswerData[] = [];
-        for (const [userId, userState] of this.users) {
-          userAnswerData.push({
-            userId,
-            name: userState.name,
-            answers: userState.answers,
-          });
-        }
-
-        // Aggregate narrative data
-        const narrativeData = aggregateNarrativeData(userAnswerData, this.questions);
-        
-        // Validate narrative data
-        if (narrativeData.totalPlayers < 2 || narrativeData.totalQuestions === 0) {
-          console.warn("[Server] Invalid narrative data:", narrativeData.totalPlayers, "players,", narrativeData.totalQuestions, "questions");
-          this.narrativeStory = "";
-          const emptyMsg: NarrativeMessage = { type: "NARRATIVE", story: "" };
-          this.room.broadcast(JSON.stringify(emptyMsg));
-          return;
-        }
-
-        // Generate narrative story using LLM
-        let story: string;
-        try {
-          story = await generateNarrative(narrativeData);
-          console.log("[Server] Generated story length:", story.length);
-          console.log("[Server] Story starts with:", story.substring(0, 50));
-        } catch (llmError) {
-          console.error("[Server] LLM API failed, using fallback narrative:", llmError);
-          // Generate fallback narrative instead of empty
-          story = generateFallbackNarrative(narrativeData);
-          console.log("[Server] Fallback story length:", story.length);
-          console.log("[Server] Fallback story starts with:", story.substring(0, 50));
-        }
-
-        // Cache story for late joiners
-        this.narrativeStory = story;
-
-        // Send narrative to all connections
-        const narrativeMsg: NarrativeMessage = {
-          type: "NARRATIVE",
-          story,
-        };
-        this.room.broadcast(JSON.stringify(narrativeMsg));
-      } catch (error) {
-        console.error("[Server] Narrative generation failed:", error instanceof Error ? error.message : String(error));
-        
-        // Try to generate fallback narrative even on complete failure
-        try {
-          const fallback = generateFallbackNarrative(aggregateNarrativeData(
-            Array.from(this.users.entries()).map(([userId, userState]) => ({
-              userId,
-              name: userState.name,
-              answers: userState.answers,
-            })),
-            this.questions
-          ));
-          this.narrativeStory = fallback;
-          const fallbackMsg: NarrativeMessage = {
-            type: "NARRATIVE",
-            story: fallback,
-          };
-          this.room.broadcast(JSON.stringify(fallbackMsg));
-        } catch (fallbackError) {
-          // Last resort: send empty story so UI knows to stop loading
-          this.narrativeStory = "";
-          const emptyMsg: NarrativeMessage = {
-            type: "NARRATIVE",
-            story: "",
-          };
-          this.room.broadcast(JSON.stringify(emptyMsg));
-        }
-      } finally {
-        // Clear promise so late joiners know generation is complete
-        this.narrativeGenerationPromise = null;
-      }
-    })();
-
-    return this.narrativeGenerationPromise;
-  }
 
   private getConnectionInsight(userId: string, otherUserId: string): string | undefined {
     return this.connectionInsights.get(userId)?.get(otherUserId);

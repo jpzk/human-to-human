@@ -14,15 +14,15 @@ A multiplayer compatibility game where strangers answer questions anonymously, g
 
 You join a room, pick a deck of questions (friendship, love, office politics, etc.), and answer them while watching other players' cursors float around like digital ghosts. It's oddly comforting knowing someone else is there, even if they're just a colored dot named "Swift Panda."
 
-The game calculates compatibility scores based on your answers—because nothing says "we should be friends" like both picking "coffee" over "tea." Then an AI writes a lovely narrative about your group's answers, turning "you both like mornings" into a poetic tale of cosmic alignment.
+The game calculates compatibility scores based on your answers—because nothing says "we should be friends" like both picking "coffee" over "tea." Each match includes a short AI-generated reason explaining why you're compatible.
 
-Once you're done reading about your compatibility scores (which are definitely not just percentages, they're *meaningful* percentages), you can request to reveal identities. If both parties agree (mutual reveal), you get to chat. It's like a digital handshake, but with more typing and less awkward eye contact.
+Once you're done reviewing your compatibility scores (which are definitely not just percentages, they're *meaningful* percentages), you can request to reveal identities. If both parties agree (mutual reveal), you get to chat. It's like a digital handshake, but with more typing and less awkward eye contact.
 
 ## Tech Stack
 
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS
 - **Backend**: PartyKit (WebSocket server for real-time multiplayer)
-- **AI**: Gemini API for generating narratives and connection insights
+- **AI**: Gemini API for generating connection insights
 
 ## Prerequisites
 
@@ -85,7 +85,7 @@ src/
 
 3. **Answering**: Questions appear one at a time, like a gentle interrogation. Players answer via multiple choice buttons or sliders (because sometimes you need nuance). Once everyone answers, it auto-advances. No take-backsies—your first instinct is your final answer, just like life.
 
-4. **Results**: Compatibility scores are calculated using advanced math (exact matches for choices, proximity calculations for sliders). The AI then generates a narrative about your group's answers, turning "you both prefer mornings" into a beautiful story about cosmic alignment. Players can see their matches ranked by compatibility—it's like a leaderboard, but for friendship potential.
+4. **Results**: Compatibility scores are calculated using advanced math (exact matches for choices, proximity calculations for sliders). The AI generates short connection insights (2-5 words) explaining why you're compatible with each match. Players can see their matches ranked by compatibility—it's like a leaderboard, but for friendship potential.
 
 5. **Reveal**: Players can request to reveal identities. If both parties agree (mutual reveal), a chat opens. If not, it just sits there pending, like a text message you're waiting for someone to respond to. No pressure, but also all the pressure.
 
@@ -95,9 +95,7 @@ src/
 
 - **Real-time cursors**: See where other players are moving their mouse in real-time. It's oddly intimate watching someone's cursor hover over an answer, knowing they're thinking about it. Click their cursor to nudge them (with a 10-second cooldown, because we're not monsters who spam-nudge people).
 
-- **AI narratives**: Gemini generates beautiful stories about your group's answers, turning data points into poetry. Falls back to perfectly fine templates if the API fails or you're running it locally without an API key. The templates won't judge you, we promise.
-
-- **Connection insights**: The AI explains why you're compatible with someone in a way that's more poetic than "you both answered similarly." It's like having a friend who's really good at explaining why you and someone else would get along.
+- **Connection insights**: The AI generates short, meaningful reasons (2-5 words) explaining why you're compatible with each match. It's like having a friend who's really good at explaining why you and someone else would get along.
 
 - **Mutual reveal**: Both parties must agree before identities are revealed. No surprises, just mutual consent. It's like a digital handshake, but with more typing and less awkward eye contact.
 
@@ -114,7 +112,7 @@ Want to add more? Create a new JSON file in `src/lib/decks-data/` following the 
 
 ## Environment Variables
 
-- `GEMINI_API_KEY`: Your Gemini API key for AI features. Optional, but recommended unless you're perfectly happy reading template narratives (which are also fine, we're not judging).
+- `GEMINI_API_KEY`: Your Gemini API key for AI features. Optional, but recommended for connection insights. Falls back to simple templates if not provided.
 
 ## Known Limitations
 

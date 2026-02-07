@@ -8,7 +8,6 @@ import type {
   ResultsMessage,
   RevealMutualMessage,
   QuestionAdvanceMessage,
-  NarrativeMessage,
   NudgeStatusMessage,
   NudgeReceivedMessage,
   RevealRequestNotificationMessage,
@@ -62,7 +61,6 @@ export function useGameState() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isGeneratingDeck, setIsGeneratingDeck] = useState(false);
   const [deckError, setDeckError] = useState<string | null>(null);
-  const [narrativeStory, setNarrativeStory] = useState<string>("");
   const [nudgeCooldowns, setNudgeCooldowns] = useState<Record<string, number>>({});
   const [revealNotifications, setRevealNotifications] = useState<Map<string, { requesterId: string; requesterName: string; requesterColor: string }>>(new Map());
   const [activeChat, setActiveChat] = useState<{ chatId: string; partnerId: string; partnerName: string; partnerColor: string } | null>(null);
@@ -99,7 +97,6 @@ export function useGameState() {
       setNudgeCooldowns({});
       setResults([]);
       setRevealedUsers(new Map());
-      setNarrativeStory("");
       setRevealNotifications(new Map());
       setActiveChat(null);
       setChatMessages([]);
@@ -126,19 +123,6 @@ export function useGameState() {
     if (msg.type === "RESULTS") {
       const resultsMsg = msg as ResultsMessage;
       setResults(resultsMsg.matches ?? []);
-      return;
-    }
-
-    if (msg.type === "NARRATIVE") {
-      const narrativeMsg = msg as NarrativeMessage;
-      const story = narrativeMsg.story ?? "";
-      console.log("[useGameState] Narrative received:", story.length > 0 ? "story present" : "empty story");
-      if (story.length > 0) {
-        console.log("[useGameState] Narrative story length:", story.length, "characters");
-      } else {
-        console.warn("[useGameState] Empty narrative story received");
-      }
-      setNarrativeStory(story);
       return;
     }
 
@@ -347,7 +331,6 @@ export function useGameState() {
     revealedUsers,
     lobbyConfig,
     questions,
-    narrativeStory,
     nudgeCooldowns,
     revealNotifications,
     activeChat,

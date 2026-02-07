@@ -106,7 +106,6 @@ export default function App() {
     revealedUsers,
     lobbyConfig,
     questions,
-    narrativeStory,
     nudgeCooldowns,
     revealNotifications,
     activeChat,
@@ -501,7 +500,6 @@ export default function App() {
           {phase === GamePhase.RESULTS && (
             <ResultsView 
               matches={results} 
-              narrativeStory={narrativeStory} 
               readyCount={resultsReadyCount}
               totalPlayers={resultsTotalPlayers}
               isCurrentUserReady={isCurrentUserReady}

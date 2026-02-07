@@ -165,11 +165,6 @@ export type QuestionAdvanceMessage = {
   questionIndex: number;
 };
 
-export type NarrativeMessage = {
-  type: "NARRATIVE";
-  story: string;  // Cohesive narrative story
-};
-
 export type ReadyStatusMessage = {
   type: "READY_STATUS";
   readyCount: number;
@@ -238,7 +233,6 @@ export type ServerMessage =
   | RevealStatusMessage
   | RevealMutualMessage
   | QuestionAdvanceMessage
-  | NarrativeMessage
   | ReadyStatusMessage
   | IntroReadyStatusMessage
   | NudgeStatusMessage
