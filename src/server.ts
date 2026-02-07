@@ -996,8 +996,8 @@ export default class GameServer implements Party.Server {
             if (!userB) continue;
 
             const score = this.calculateCompatibility(userA, userB);
-            const agreements: string[] = [];
-            const differences: string[] = [];
+            const agreements: Array<{ label: string; strength: number }> = [];
+            const differences: Array<{ label: string; strength: number }> = [];
 
             // Analyze agreements and differences
             for (const [qId, answerMetaA] of userA.answers) {
@@ -1011,8 +1011,21 @@ export default class GameServer implements Party.Server {
               const answerB = answerMetaB.value;
 
               let isAgreement = false;
+              let agreementStrength = 1;
+              let differenceStrength = 1;
+              let label: string | null = null;
+
               if (answerA.type === "choice" && answerB.type === "choice") {
                 isAgreement = answerA.answerId === answerB.answerId;
+                if (question.type === QuestionType.MULTIPLE_CHOICE) {
+                  const answerTextA = question.answers.find((item) => item.id === answerA.answerId)?.text;
+                  const answerTextB = question.answers.find((item) => item.id === answerB.answerId)?.text;
+                  if (isAgreement && answerTextA) {
+                    label = answerTextA;
+                  } else if (!isAgreement && answerTextA && answerTextB) {
+                    label = `${answerTextA} vs ${answerTextB}`;
+                  }
+                }
               } else if (answerA.type === "slider" && answerB.type === "slider") {
                 // Consider agreement if within 20% of range (already have question from line 1066)
                 if (question.type === QuestionType.SLIDER) {
@@ -1022,18 +1035,40 @@ export default class GameServer implements Party.Server {
                     const normalizedB = answerB.value / maxPosition;
                     const diff = Math.abs(normalizedA - normalizedB);
                     isAgreement = diff <= 0.2;
+                    agreementStrength = 1 - diff;
+                    differenceStrength = diff;
                   } else {
                     isAgreement = answerA.value === answerB.value;
                   }
                 }
+                const labels = question.type === QuestionType.SLIDER
+                  ? question.config.labels.map((l) => l.trim()).filter(Boolean)
+                  : [];
+                if (labels.length >= 2) {
+                  label = `${labels[0]} vs ${labels[labels.length - 1]}`;
+                } else {
+                  label = question.text;
+                }
               }
 
               if (isAgreement) {
-                agreements.push(question.text);
+                if (label) agreements.push({ label, strength: agreementStrength });
               } else {
-                differences.push(question.text);
+                if (!label) {
+                  label = question.text;
+                }
+                differences.push({ label, strength: differenceStrength });
               }
             }
+
+            const topAgreements = agreements
+              .sort((a, b) => b.strength - a.strength)
+              .slice(0, 2)
+              .map((item) => item.label);
+            const topDifferences = differences
+              .sort((a, b) => b.strength - a.strength)
+              .slice(0, 2)
+              .map((item) => item.label);
 
             // Generate insights for all pairs (batch API call)
             pairs.push({
@@ -1042,8 +1077,8 @@ export default class GameServer implements Party.Server {
               userAName: userA.name,
               userBName: userB.name,
               score,
-              agreements: agreements.slice(0, 3), // Limit to top 3 agreements
-              differences: differences.slice(0, 2), // Limit to top 2 differences
+              agreements: topAgreements,
+              differences: topDifferences,
             });
           }
         }

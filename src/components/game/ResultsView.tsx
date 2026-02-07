@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import type { CompatibilityScore } from "@/types/messages";
 
 type ResultsViewProps = {
@@ -47,10 +48,15 @@ export function ResultsView({
                   <p className="text-sm font-medium text-foreground">
                     {match.anonymousName}
                   </p>
-                  {match.connectionReason && (
+                  {match.connectionReason ? (
                     <p className="text-xs text-muted-foreground mt-1">
                       {match.connectionReason}
                     </p>
+                  ) : (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                      <Spinner size={12} />
+                      <span>Generating insight</span>
+                    </div>
                   )}
                 </div>
                 <div className="text-right">

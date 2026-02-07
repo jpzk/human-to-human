@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import type { CompatibilityScore } from "@/types/messages";
 
 type RevealedUser = {
@@ -100,9 +101,14 @@ export function RevealView({
                           <div className="text-sm text-muted-foreground">
                             {formatScore(match.score)} match
                           </div>
-                          {match.connectionReason && (
+                          {match.connectionReason ? (
                             <div className="text-xs text-primary italic mt-1">
                               {match.connectionReason}
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
+                              <Spinner size={12} className="border-primary/70 border-t-transparent" />
+                              <span>Generating insight</span>
                             </div>
                           )}
                         </>

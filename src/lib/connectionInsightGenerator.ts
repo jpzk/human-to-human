@@ -1,16 +1,9 @@
 import { callGeminiAPI, type GeminiMessage } from "./geminiClient";
 
-const SYSTEM_PROMPT = `You generate ultra-concise connection reasons explaining why two people would connect based on their compatibility quiz answers.
-
-Guidelines:
-- MAXIMUM 5 words per reason
-- Be specific and insightful, not generic
-- Focus on what makes their connection interesting (shared values, complementary differences, unique alignment)
-- Use natural, conversational language
-- Examples: "shared values drive connection", "opposites attract creative sparks", "both value deep conversations", "complementary risk-taking styles"
-
-Return ONLY a JSON object mapping pair keys to reasons. Example format:
-{"Alice-Bob": "shared values drive connection", "Alice-Carol": "opposites attract creative sparks"}`;
+const SYSTEM_PROMPT = `Write ultra-short (2-5 words) reasons two people should connect. 
+Use the agreements/differences provided. Be specific and insightful, not generic.
+use natural, conversational language. focus on what makes the connection interesting.  
+Return ONLY a JSON object mapping pair keys to reasons.`;
 
 interface ConnectionPair {
   userAId: string;
@@ -23,19 +16,10 @@ interface ConnectionPair {
 }
 
 function formatPairData(pair: ConnectionPair): string {
-  const parts: string[] = [];
-  
-  parts.push(`${pair.userAName} & ${pair.userBName} (${Math.round(pair.score * 100)}% match)`);
-  
-  if (pair.agreements.length > 0) {
-    parts.push(`Agreed on: ${pair.agreements.slice(0, 3).join(", ")}${pair.agreements.length > 3 ? "..." : ""}`);
-  }
-  
-  if (pair.differences.length > 0) {
-    parts.push(`Differed on: ${pair.differences.slice(0, 2).join(", ")}${pair.differences.length > 2 ? "..." : ""}`);
-  }
-  
-  return parts.join("; ");
+  const score = Math.round(pair.score * 100);
+  const agreements = pair.agreements.length > 0 ? pair.agreements.join(", ") : "-";
+  const differences = pair.differences.length > 0 ? pair.differences.join(", ") : "-";
+  return `${pair.userAName}-${pair.userBName} | ${score}% | Agreements: ${agreements} | Differences: ${differences}`;
 }
 
 export async function generateConnectionInsights(
@@ -59,13 +43,11 @@ export async function generateConnectionInsights(
     .map((pair, index) => `${index + 1}. ${formatPairData(pair)}`)
     .join("\n");
 
-  const pairKeys = pairs.map(p => `${p.userAName}-${p.userBName}`);
-
   const messages: GeminiMessage[] = [
     { role: "system", content: SYSTEM_PROMPT },
     {
       role: "user",
-      content: `Generate connection reasons for these pairs:\n\n${pairsDescription}\n\nReturn JSON object with keys: ${pairKeys.map(k => `"${k}"`).join(", ")}`,
+      content: `Pairs:\n${pairsDescription}\nReturn JSON using the same keys (left of |).`,
     },
   ];
 
@@ -90,6 +72,10 @@ export async function generateConnectionInsights(
           if (typeof reason === "string" && reason.trim().length > 0) {
             // Validate max 5 words
             const words = reason.trim().split(/\s+/);
+            if (words.length < 2) {
+              // Too short for our requirement; let fallback handle it
+              continue;
+            }
             if (words.length <= 5) {
               result.set(key, reason.trim());
             } else {
