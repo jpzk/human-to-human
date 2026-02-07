@@ -1,6 +1,6 @@
 ![Human to Human Logo](./public/logo-name.png)
 
-Created in 10 hours in a team of 3 people at the [Cursor AI Hackathon 2026](https://luma.com/hl7wv7k3?tk=JcBLTk), used AI tools include Cursor and MiniMax. 
+Created in 10 hours in a team of 3 people at the [Cursor AI Hackathon 2026](https://luma.com/hl7wv7k3?tk=JcBLTk), used AI tools include Cursor and Gemini. 
 
 **TLDR** Hands is AI-infused humane tech for IRL events to find human connection in friends or your next co-founder. It's an UX-focused multiplayer experience (think Miro) that asks thought provoking/intimate questions while keeping identities hidden. Once a session is over participants are able to double opt-in to reveal their identities and connect. 
 
@@ -22,12 +22,12 @@ Once you're done reading about your compatibility scores (which are definitely n
 
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS
 - **Backend**: PartyKit (WebSocket server for real-time multiplayer)
-- **AI**: MiniMax API for generating narratives and connection insights
+- **AI**: Gemini API for generating narratives and connection insights
 
 ## Prerequisites
 
 - **Node.js** 18+ and npm/yarn
-- A MiniMax API key (optional—set `MINIMAX_API_KEY` in `.env` for AI-generated stories; otherwise uses fallback templates)
+- A Gemini API key (optional—set `GEMINI_API_KEY` in `.env` for AI-generated stories; otherwise uses fallback templates)
 
 ## Getting Started
 
@@ -95,7 +95,7 @@ src/
 
 - **Real-time cursors**: See where other players are moving their mouse in real-time. It's oddly intimate watching someone's cursor hover over an answer, knowing they're thinking about it. Click their cursor to nudge them (with a 10-second cooldown, because we're not monsters who spam-nudge people).
 
-- **AI narratives**: MiniMax generates beautiful stories about your group's answers, turning data points into poetry. Falls back to perfectly fine templates if the API fails or you're running it locally without an API key. The templates won't judge you, we promise.
+- **AI narratives**: Gemini generates beautiful stories about your group's answers, turning data points into poetry. Falls back to perfectly fine templates if the API fails or you're running it locally without an API key. The templates won't judge you, we promise.
 
 - **Connection insights**: The AI explains why you're compatible with someone in a way that's more poetic than "you both answered similarly." It's like having a friend who's really good at explaining why you and someone else would get along.
 
@@ -114,7 +114,7 @@ Want to add more? Create a new JSON file in `src/lib/decks-data/` following the 
 
 ## Environment Variables
 
-- `MINIMAX_API_KEY`: Your MiniMax API key for AI features. Optional, but recommended unless you're perfectly happy reading template narratives (which are also fine, we're not judging).
+- `GEMINI_API_KEY`: Your Gemini API key for AI features. Optional, but recommended unless you're perfectly happy reading template narratives (which are also fine, we're not judging).
 
 ## Known Limitations
 
@@ -134,7 +134,7 @@ Check the LICENSE file if you care about that sort of thing. Or don't. We're not
 
 ## Credits
 
-Built with Cursor (the AI coding assistant that made this possible) and MiniMax (for turning data into poetry). These tools are pretty great, and we're grateful they exist.
+Built with Cursor (the AI coding assistant that made this possible) and Gemini (for turning data into poetry). These tools are pretty great, and we're grateful they exist.
 
 ---
 

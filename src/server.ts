@@ -32,7 +32,7 @@ import {
 import { GamePhase, QuestionType, type LobbyConfig, type Question } from "./types/game";
 import { getDeck, deckToQuestions } from "./services/deckService";
 import { aggregateNarrativeData, type UserAnswerData, type AnswerWithMeta } from "./services/narrativeService";
-import { generateNarrative, generateFallbackNarrative, testMinimaxConnection } from "./lib/narrativeGenerator";
+import { generateNarrative, generateFallbackNarrative, testGeminiConnection } from "./lib/narrativeGenerator";
 import { generateConnectionInsights, generateFallbackConnectionInsight } from "./lib/connectionInsightGenerator";
 
 // Name generation
@@ -179,13 +179,13 @@ export default class GameServer implements Party.Server {
 
   constructor(readonly room: Party.Room) {
     // Validate API key at startup (non-blocking warning)
-    const apiKey = process.env.MINIMAX_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.warn("[Server] MINIMAX_API_KEY not set - narrative generation will use fallback");
+      console.warn("[Server] GEMINI_API_KEY not set - narrative generation will use fallback");
     } else {
-      // Test Minimax connection on startup (non-blocking)
-      testMinimaxConnection(apiKey).catch((error) => {
-        console.warn("[Server] Minimax connection test failed:", error);
+      // Test Gemini connection on startup (non-blocking)
+      testGeminiConnection(apiKey).catch((error) => {
+        console.warn("[Server] Gemini connection test failed:", error);
       });
     }
   }

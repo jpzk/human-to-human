@@ -3,3 +3,4 @@ dist/
 .partykit/
 /setup.md
 .DS_Store
+.env

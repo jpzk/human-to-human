@@ -1,5 +1,5 @@
 import type { NarrativeData } from "@/services/narrativeService";
-import { callMinimaxAPI, type MinimaxMessage } from "./minimaxClient";
+import { callGeminiAPI, type GeminiMessage } from "./geminiClient";
 
 const SYSTEM_PROMPT = `Write a brief story (2-3 paragraphs) about how this group connected through their answers. Use the data provided to extract genuine insights about where they agreed, differed, hesitated, or found unique connections. NO titles. NO markdown. NO formatting. Just plain text paragraphs separated by a single blank line.`;
 
@@ -52,18 +52,18 @@ export async function generateNarrative(
   narrativeData: NarrativeData,
   apiKey?: string
 ): Promise<string> {
-  const key = apiKey ?? process.env.MINIMAX_API_KEY;
+  const key = apiKey ?? process.env.GEMINI_API_KEY;
 
   if (!key) {
     throw new Error(
-      "Minimax API key is required. Set MINIMAX_API_KEY env var or pass apiKey parameter."
+      "Gemini API key is required. Set GEMINI_API_KEY env var or pass apiKey parameter."
     );
   }
 
   // Format the narrative data into a readable prompt
   const dataDescription = formatNarrativeData(narrativeData);
 
-  const messages: MinimaxMessage[] = [
+  const messages: GeminiMessage[] = [
     { role: "system", content: SYSTEM_PROMPT },
     {
       role: "user",
@@ -72,7 +72,7 @@ export async function generateNarrative(
   ];
 
   try {
-    const content = await callMinimaxAPI(messages, key);
+    const content = await callGeminiAPI(messages, key);
     
     console.log("[narrativeGenerator] Raw content received:", content.substring(0, 200));
 
@@ -163,23 +163,23 @@ export function generateFallbackNarrative(narrativeData: NarrativeData): string 
 }
 
 /**
- * Test Minimax API connection with a simple request
+ * Test Gemini API connection with a simple request
  */
-export async function testMinimaxConnection(apiKey?: string): Promise<void> {
-  const key = apiKey ?? process.env.MINIMAX_API_KEY;
+export async function testGeminiConnection(apiKey?: string): Promise<void> {
+  const key = apiKey ?? process.env.GEMINI_API_KEY;
   
   if (!key) {
     throw new Error("No API key");
   }
   
-  const simpleMessages: MinimaxMessage[] = [
+  const simpleMessages: GeminiMessage[] = [
     { role: "user", content: "Say hello in one sentence" }
   ];
   
   try {
-    await callMinimaxAPI(simpleMessages, key);
+    await callGeminiAPI(simpleMessages, key);
   } catch (error) {
-    console.error("[testMinimax] Connection test failed:", error instanceof Error ? error.message : String(error));
+    console.error("[testGemini] Connection test failed:", error instanceof Error ? error.message : String(error));
     throw error;
   }
 }

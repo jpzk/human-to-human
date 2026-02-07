@@ -1,4 +1,4 @@
-import { callMinimaxAPI, type MinimaxMessage } from "./minimaxClient";
+import { callGeminiAPI, type GeminiMessage } from "./geminiClient";
 
 const SYSTEM_PROMPT = `You generate ultra-concise connection reasons explaining why two people would connect based on their compatibility quiz answers.
 
@@ -42,11 +42,11 @@ export async function generateConnectionInsights(
   pairs: ConnectionPair[],
   apiKey?: string
 ): Promise<Map<string, string>> {
-  const key = apiKey ?? process.env.MINIMAX_API_KEY;
+  const key = apiKey ?? process.env.GEMINI_API_KEY;
 
   if (!key) {
     throw new Error(
-      "Minimax API key is required. Set MINIMAX_API_KEY env var or pass apiKey parameter."
+      "Gemini API key is required. Set GEMINI_API_KEY env var or pass apiKey parameter."
     );
   }
 
@@ -61,7 +61,7 @@ export async function generateConnectionInsights(
 
   const pairKeys = pairs.map(p => `${p.userAName}-${p.userBName}`);
 
-  const messages: MinimaxMessage[] = [
+  const messages: GeminiMessage[] = [
     { role: "system", content: SYSTEM_PROMPT },
     {
       role: "user",
@@ -70,7 +70,7 @@ export async function generateConnectionInsights(
   ];
 
   try {
-    const content = await callMinimaxAPI(messages, key);
+    const content = await callGeminiAPI(messages, key);
 
     // Try to parse as JSON object
     try {
