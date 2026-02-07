@@ -9,8 +9,7 @@
       "answers": [
         "Work event",
         "Park day"
-      ],
-      "audioFile": "q1_work_vs_play.mp3"
+      ]
     },
     {
       "card_name": "work_vs_play_affair",
@@ -19,8 +18,7 @@
       "answers": [
         "Secret rendezvous",
         "Casual meetup"
-      ],
-      "audioFile": "q2_work_vs_play_affair.mp3"
+      ]
     },
     {
       "card_name": "ideal_affair_location",
@@ -31,8 +29,7 @@
         "A bustling city rooftop bar",
         "A quiet beach at sunset",
         "A charming European café"
-      ],
-      "audioFile": "q3_ideal_affair_location.mp3"
+      ]
     },
     {
       "card_name": "secret_affair_location",
@@ -43,8 +40,7 @@
         "On a train",
         "At a family reunion",
         "In a museum"
-      ],
-      "audioFile": "q4_secret_affair_location.mp3"
+      ]
     },
     {
       "card_name": "affair_revelation",
@@ -53,8 +49,7 @@
       "answers": [
         "Dramatic revelation",
         "Quiet understanding"
-      ],
-      "audioFile": "q5_affair_revelation.mp3"
+      ]
     },
     {
       "card_name": "intimacy_vs_excitement",
@@ -63,8 +58,7 @@
       "answers": [
         "Deep emotional connection",
         "Exhilarating new experiences"
-      ],
-      "audioFile": "q6_intimacy_vs_excitement.mp3"
+      ]
     },
     {
       "card_name": "emotional_vs_exhilarating_affair",
@@ -73,8 +67,7 @@
       "answers": [
         "Emotional Connection",
         "Exciting Unpredictability"
-      ],
-      "audioFile": "q7_emotional_vs_exhilarating_affair.mp3"
+      ]
     },
     {
       "card_name": "emotional_vs_exciting_affair",
@@ -85,8 +78,7 @@
         "Excitement and spontaneity",
         "A mix of both",
         "Neither, I value loyalty"
-      ],
-      "audioFile": "q8_emotional_vs_exciting_affair.mp3"
+      ]
     },
     {
       "card_name": "regret_or_remember",
@@ -97,8 +89,7 @@
         "Cherish as a fond memory",
         "A mix of both",
         "Hard to say"
-      ],
-      "audioFile": "q9_regret_or_remember.mp3"
+      ]
     },
     {
       "card_name": "regret_or_cherish_affair",
@@ -109,9 +100,7 @@
         "Cherish fondly",
         "Depends on the outcome",
         "Hard to say"
-      ],
-      "audioFile": "q10_regret_or_cherish_affair.mp3"
+      ]
     }
-  ],
-  "introAudioFile": "intro.mp3"
+  ]
 }

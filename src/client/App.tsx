@@ -12,7 +12,6 @@ import { Cursor } from "@/components/game/Cursor";
 import { GamePhase } from "@/types/game";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useGameState } from "@/hooks/useGameState";
-import { useAudio } from "@/hooks/useAudio";
 import { getTotalPlayers } from "@/services/gameService";
 import { generateRoomId, getRoomIdFromUrl, setRoomIdInUrl, getRoomLink } from "@/lib/roomUtils";
 import { getDeck } from "@/services/deckService";
@@ -48,9 +47,6 @@ export default function App() {
   // Store pending lobby config when creating a new lobby
   const [pendingLobbyConfig, setPendingLobbyConfig] = useState<{ deck?: string } | null>(null);
 
-  // Audio enabled state (default ON for prerecorded audio)
-  const [audioEnabled, setAudioEnabled] = useState(true);
-
   // Results ready state tracking
   const [resultsReadyCount, setResultsReadyCount] = useState(0);
   const [resultsTotalPlayers, setResultsTotalPlayers] = useState(0);
@@ -72,9 +68,6 @@ export default function App() {
 
   // Use custom hooks for game state and WebSocket (only connect if roomId exists)
   const gameState = useGameState();
-
-  // Audio hook for playing prerecorded MP3 files (not TTS generation)
-  const { state: audioState, playPrerecordedAudio, stop: audioStop } = useAudio();
 
   // Wrap message handler to also handle ready status
   const handleMessage = useCallback((msg: ServerMessage) => {
@@ -382,51 +375,6 @@ export default function App() {
     };
   }, []);
 
-  // Helper to get deck slug from deck name
-  const getDeckSlug = useCallback((deckName: string): string => {
-    // Map deck names to their folder slugs
-    const slugMap: Record<string, string> = {
-      "Friendship Fortunes": "friendship-fortunes",
-      "Love in Harmony": "love-in-harmony",
-      "Whispers of the Heart": "whispers-of-the-heart",
-      "Office Allies: Building Bonds Beyond Cubicles": "office-allies-building-bonds-beyond-cubicles",
-    };
-    return slugMap[deckName] || deckName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-  }, []);
-
-  // Auto-play prerecorded audio when question changes (if audio enabled)
-  useEffect(() => {
-    if (!audioEnabled || !currentQuestion || phase !== GamePhase.ANSWERING) return;
-
-    // Play prerecorded audio file for this question
-    if (currentQuestion.audioFile && lobbyConfig?.deck) {
-      const deckSlug = getDeckSlug(lobbyConfig.deck);
-      const audioUrl = `/decks/${deckSlug}/${currentQuestion.audioFile}`;
-      playPrerecordedAudio(audioUrl);
-    }
-  }, [currentQuestion?.id, audioEnabled, phase, playPrerecordedAudio, lobbyConfig, getDeckSlug]);
-
-  // Play deck introduction audio when entering INTRO phase (if audio enabled)
-  useEffect(() => {
-    if (audioEnabled && phase === GamePhase.INTRO && lobbyConfig?.deck) {
-      const deck = getDeck(lobbyConfig.deck);
-      if (deck?.introAudioFile) {
-        const deckSlug = getDeckSlug(lobbyConfig.deck);
-        const introUrl = `/decks/${deckSlug}/${deck.introAudioFile}`;
-        playPrerecordedAudio(introUrl);
-      }
-    }
-  }, [phase, audioEnabled, lobbyConfig, getDeckSlug, playPrerecordedAudio]);
-
-  // Stop audio and reset ready state when leaving RESULTS phase
-  useEffect(() => {
-    if (phase !== GamePhase.RESULTS) {
-      audioStop();
-      setIsCurrentUserReady(false);
-      setResultsReadyCount(0);
-    }
-  }, [phase, audioStop]);
-
   // Reset intro ready state when leaving INTRO phase
   useEffect(() => {
     if (phase !== GamePhase.INTRO) {
@@ -435,13 +383,13 @@ export default function App() {
     }
   }, [phase]);
 
-  // Audio toggle handler
-  const handleAudioToggle = useCallback(() => {
-    if (audioEnabled) {
-      audioStop(); // Stop current playback when disabling
+  // Reset ready state when leaving RESULTS phase
+  useEffect(() => {
+    if (phase !== GamePhase.RESULTS) {
+      setIsCurrentUserReady(false);
+      setResultsReadyCount(0);
     }
-    setAudioEnabled(!audioEnabled);
-  }, [audioEnabled, audioStop]);
+  }, [phase]);
 
   // Handle player ready for results
   const handlePlayerReady = useCallback(() => {
@@ -488,7 +436,7 @@ export default function App() {
             top: `calc(50% + ${(VIEWPORT_H * scale) / 2 + 16 * scale}px)`
           }}
         >
-          created with <span className="font-bold">Cursor</span>, <span className="font-bold">MiniMax</span> and <span className="font-bold">Hume.ai</span>
+          created with <span className="font-bold">Cursor</span> and <span className="font-bold">MiniMax</span>
         </p>
       </div>
     );
@@ -610,7 +558,7 @@ export default function App() {
             top: `calc(50% + ${(VIEWPORT_H * scale) / 2 + 16 * scale}px)`
           }}
         >
-          created with <span className="font-bold">Cursor</span>, <span className="font-bold">MiniMax</span> and <span className="font-bold">Hume.ai</span>
+          created with <span className="font-bold">Cursor</span> and <span className="font-bold">MiniMax</span>
         </p>
       </div>
       

@@ -9,8 +9,7 @@
       "answers": [
         "Early bird",
         "Night owl"
-      ],
-      "audioFile": "q1_early_bird_or_night_owl.mp3"
+      ]
     },
     {
       "card_name": "coffee_break_choice",
@@ -21,8 +20,7 @@
         "A nearby café",
         "The park",
         "A virtual coffee break"
-      ],
-      "audioFile": "q2_coffee_break_choice.mp3"
+      ]
     },
     {
       "card_name": "coffee_break_preference",
@@ -33,8 +31,7 @@
         "A nearby café",
         "Outside in the fresh air",
         "A cozy corner of the office"
-      ],
-      "audioFile": "q3_coffee_break_preference.mp3"
+      ]
     },
     {
       "card_name": "dream_career_switch",
@@ -45,8 +42,7 @@
         "The number-crunching accountant",
         "The smooth-talking salesperson",
         "The tech-savvy IT expert"
-      ],
-      "audioFile": "q4_dream_career_switch.mp3"
+      ]
     },
     {
       "card_name": "future_goals",
@@ -57,8 +53,7 @@
         "Get a big promotion",
         "Start a new initiative",
         "Win a team award"
-      ],
-      "audioFile": "q5_future_goals.mp3"
+      ]
     },
     {
       "card_name": "work_life_balance",
@@ -67,8 +62,7 @@
       "answers": [
         "Definitely a workaholic",
         "Strictly a work-life balance advocate"
-      ],
-      "audioFile": "q6_work_life_balance.mp3"
+      ]
     },
     {
       "card_name": "deep_work_struggle",
@@ -79,8 +73,7 @@
         "I have imposter syndrome",
         "I find it hard to ask for help",
         "I get anxious about public speaking"
-      ],
-      "audioFile": "q7_deep_work_struggle.mp3"
+      ]
     },
     {
       "card_name": "deepest_work_regret",
@@ -91,8 +84,7 @@
         "Missing a career opportunity",
         "Not supporting a colleague",
         "Burning out from overworking"
-      ],
-      "audioFile": "q8_deepest_work_regret.mp3"
+      ]
     },
     {
       "card_name": "workplace_fear",
@@ -103,8 +95,7 @@
         "Being replaced or laid off",
         "Public speaking or presentations",
         "Conflict with colleagues"
-      ],
-      "audioFile": "q9_workplace_fear.mp3"
+      ]
     },
     {
       "card_name": "vulnerability_at_work",
@@ -113,9 +104,7 @@
       "answers": [
         "Highly competent",
         "Deeply caring"
-      ],
-      "audioFile": "q10_vulnerability_at_work.mp3"
+      ]
     }
-  ],
-  "introAudioFile": "intro.mp3"
+  ]
 }

@@ -11,8 +11,7 @@
         "Tea is my jam",
         "I need both",
         "Neither, I'm a water person"
-      ],
-      "audioFile": "q1_coffee_or_tea.mp3"
+      ]
     },
     {
       "card_name": "favorite_hobby",
@@ -23,8 +22,7 @@
         "Playing board games",
         "Watching movies",
         "Going for a walk or hike"
-      ],
-      "audioFile": "q2_favorite_hobby.mp3"
+      ]
     },
     {
       "card_name": "movie_night_pick",
@@ -35,8 +33,7 @@
         "Romantic Comedy",
         "Horror/Thriller",
         "Documentary"
-      ],
-      "audioFile": "q3_movie_night_pick.mp3"
+      ]
     },
     {
       "card_name": "friends_dream_vacation",
@@ -47,8 +44,7 @@
         "Mountain retreat",
         "City exploration",
         "Cultural adventure"
-      ],
-      "audioFile": "q4_friends_dream_vacation.mp3"
+      ]
     },
     {
       "card_name": "adventure_vs_comfort",
@@ -57,8 +53,7 @@
       "answers": [
         "Epic Adventure",
         "Cozy Night In"
-      ],
-      "audioFile": "q5_adventure_vs_comfort.mp3"
+      ]
     },
     {
       "card_name": "secret_talent",
@@ -69,8 +64,7 @@
         "I can perfectly mimic animal sounds",
         "I can play a musical instrument no one knows about",
         "I can name all the countries in the world"
-      ],
-      "audioFile": "q6_secret_talent.mp3"
+      ]
     },
     {
       "card_name": "emotional_support_preference",
@@ -79,8 +73,7 @@
       "answers": [
         "Quiet listener",
         "Advice giver"
-      ],
-      "audioFile": "q7_emotional_support_preference.mp3"
+      ]
     },
     {
       "card_name": "friendship_regret",
@@ -91,8 +84,7 @@
         "Saying something hurtful in the past",
         "Not keeping in touch after a fight",
         "Choosing someone else over them"
-      ],
-      "audioFile": "q8_friendship_regret.mp3"
+      ]
     },
     {
       "card_name": "vulnerability_with_friends",
@@ -103,8 +95,7 @@
         "My personal insecurities",
         "My family issues",
         "My romantic struggles"
-      ],
-      "audioFile": "q9_vulnerability_with_friends.mp3"
+      ]
     },
     {
       "card_name": "deepest_fear_revealed",
@@ -115,9 +106,7 @@
         "Not being truly understood",
         "Losing someone close to me",
         "Being betrayed by a friend"
-      ],
-      "audioFile": "q10_deepest_fear_revealed.mp3"
+      ]
     }
-  ],
-  "introAudioFile": "intro.mp3"
+  ]
 }

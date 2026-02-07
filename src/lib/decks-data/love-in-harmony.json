@@ -9,8 +9,7 @@
       "answers": [
         "Definitely a morning person",
         "Definitely a night owl"
-      ],
-      "audioFile": "q1_morning_person_or_night_owl.mp3"
+      ]
     },
     {
       "card_name": "weekend_wanderer",
@@ -21,8 +20,7 @@
         "Relaxing at home with movies",
         "Trying out a new hobby",
         "Going for a nature hike"
-      ],
-      "audioFile": "q2_weekend_wanderer.mp3"
+      ]
     },
     {
       "card_name": "foodie_or_food_critic",
@@ -31,8 +29,7 @@
       "answers": [
         "Total foodie - I'll try anything!",
         "Critical connoisseur - I know my tastes"
-      ],
-      "audioFile": "q3_foodie_or_food_critic.mp3"
+      ]
     },
     {
       "card_name": "love_language",
@@ -43,8 +40,7 @@
         "Quality time",
         "Words of affirmation",
         "Physical touch"
-      ],
-      "audioFile": "q4_love_language.mp3"
+      ]
     },
     {
       "card_name": "future_living_style",
@@ -53,8 +49,7 @@
       "answers": [
         "City Dweller",
         "Nature Lover"
-      ],
-      "audioFile": "q5_future_living_style.mp3"
+      ]
     },
     {
       "card_name": "dream_vacation",
@@ -63,8 +58,7 @@
       "answers": [
         "Tropical beach lounger",
         "Culture-seeking city explorer"
-      ],
-      "audioFile": "q6_dream_vacation.mp3"
+      ]
     },
     {
       "card_name": "relationship_fears",
@@ -73,8 +67,7 @@
       "answers": [
         "Losing independence",
         "Losing connection"
-      ],
-      "audioFile": "q7_relationship_fears.mp3"
+      ]
     },
     {
       "card_name": "biggest_regret_shared",
@@ -85,8 +78,7 @@
         "I haven't found the courage yet",
         "I prefer to keep it to myself",
         "I don't believe in regrets"
-      ],
-      "audioFile": "q8_biggest_regret_shared.mp3"
+      ]
     },
     {
       "card_name": "sharing_fears",
@@ -97,8 +89,7 @@
         "Fear of abandonment",
         "Fear of not being good enough",
         "Fear of losing them"
-      ],
-      "audioFile": "q9_sharing_fears.mp3"
+      ]
     },
     {
       "card_name": "emotional_support_vs_independence",
@@ -107,9 +98,7 @@
       "answers": [
         "Emotional support",
         "Independence"
-      ],
-      "audioFile": "q10_emotional_support_vs_independence.mp3"
+      ]
     }
-  ],
-  "introAudioFile": "intro.mp3"
+  ]
 }

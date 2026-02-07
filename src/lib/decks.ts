@@ -3,7 +3,6 @@ export interface ButtonCard {
   question: string;
   type: "buttons";
   answers: [string, string, string, string];
-  audioFile?: string;
 }
 
 export interface SliderCard {
@@ -11,7 +10,6 @@ export interface SliderCard {
   question: string;
   type: "slider";
   answers: [string, string] | [string, string, string, string, string];
-  audioFile?: string;
 }
 
 export type Card = ButtonCard | SliderCard;
@@ -19,7 +17,6 @@ export type Card = ButtonCard | SliderCard;
 export interface Deck {
   deck_name: string;
   introduction?: string;
-  introAudioFile?: string;
   cards: Card[];
 }
 
@@ -29,7 +26,7 @@ import loveInHarmony from "./decks-data/love-in-harmony.json";
 import whispersOfTheHeart from "./decks-data/whispers-of-the-heart.json";
 import officeAllies from "./decks-data/office-allies.json";
 
-// All decks are pre-generated with audio files
+// All pre-generated decks
 const allDecks: Deck[] = [
   friendshipFortunes as Deck,
   loveInHarmony as Deck,

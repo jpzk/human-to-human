@@ -11,8 +11,7 @@
         "Exploring a new city",
         "Watching a movie at home",
         "Going to a fancy restaurant"
-      ],
-      "audioFile": "q1_favorite_date_night.mp3"
+      ]
     },
     {
       "card_name": "morning_person_vs_night_owl",
@@ -21,8 +20,7 @@
       "answers": [
         "Total morning person",
         "Dedicated night owl"
-      ],
-      "audioFile": "q2_morning_person_vs_night_owl.mp3"
+      ]
     },
     {
       "card_name": "romantic_gesture_preference",
@@ -31,8 +29,7 @@
       "answers": [
         "Grand gestures",
         "Thoughtful little surprises"
-      ],
-      "audioFile": "q3_romantic_gesture_preference.mp3"
+      ]
     },
     {
       "card_name": "love_language_preference",
@@ -43,8 +40,7 @@
         "Quality time",
         "Receiving gifts",
         "Physical touch"
-      ],
-      "audioFile": "q4_love_language_preference.mp3"
+      ]
     },
     {
       "card_name": "love_priorities",
@@ -55,8 +51,7 @@
         "Adventure and excitement",
         "Stability and comfort",
         "Shared goals and growth"
-      ],
-      "audioFile": "q5_love_priorities.mp3"
+      ]
     },
     {
       "card_name": "adventure_vs_comfort",
@@ -65,8 +60,7 @@
       "answers": [
         "Adventure",
         "Cozy Nights In"
-      ],
-      "audioFile": "q6_adventure_vs_comfort.mp3"
+      ]
     },
     {
       "card_name": "intimacy_vs_independence",
@@ -75,8 +69,7 @@
       "answers": [
         "Constant closeness",
         "Cherish independence"
-      ],
-      "audioFile": "q7_intimacy_vs_independence.mp3"
+      ]
     },
     {
       "card_name": "fears_in_love",
@@ -87,8 +80,7 @@
         "Fear of losing independence",
         "Fear of not being enough",
         "Fear of betrayal"
-      ],
-      "audioFile": "q8_fears_in_love.mp3"
+      ]
     },
     {
       "card_name": "risk_taker_or_risk_averse",
@@ -97,8 +89,7 @@
       "answers": [
         "I dive in headfirst",
         "I tread carefully"
-      ],
-      "audioFile": "q9_risk_taker_or_risk_averse.mp3"
+      ]
     },
     {
       "card_name": "vulnerability_vs_protection",
@@ -107,9 +98,7 @@
       "answers": [
         "I open up vulnerably",
         "I protect my heart"
-      ],
-      "audioFile": "q10_vulnerability_vs_protection.mp3"
+      ]
     }
-  ],
-  "introAudioFile": "intro.mp3"
+  ]
 }

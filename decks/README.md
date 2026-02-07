@@ -1,14 +1,13 @@
 # Deck Generator
 
-Generate custom decks with AI-generated questions and TTS audio narration.
+Generate custom decks with AI-generated questions.
 
 ## Prerequisites
 
-Ensure you have the following environment variables set in `.env`:
+Ensure you have the following environment variable set in `.env`:
 
 ```
 MINIMAX_API_KEY=your-minimax-api-key
-HUME_API_KEY=your-hume-api-key
 ```
 
 ## Usage
@@ -48,11 +47,7 @@ Each generated deck creates a folder with:
 
 ```
 decks/<deck-name>/
-  deck.json          # Deck data with audio file references
-  intro.mp3          # Introduction narration
-  q1_<name>.mp3      # Question 1 audio
-  q2_<name>.mp3      # Question 2 audio
-  ...
+  deck.json          # Deck data with questions
 ```
 
 ## Deck JSON Structure
@@ -60,15 +55,13 @@ decks/<deck-name>/
 ```json
 {
   "deck_name": "Deck Name",
-  "introduction": "Introduction text read by narrator...",
-  "introAudioFile": "intro.mp3",
+  "introduction": "Introduction text...",
   "cards": [
     {
       "card_name": "question_name",
       "question": "The question text?",
       "type": "buttons",
-      "answers": ["Answer 1", "Answer 2", "Answer 3", "Answer 4"],
-      "audioFile": "q1_question_name.mp3"
+      "answers": ["Answer 1", "Answer 2", "Answer 3", "Answer 4"]
     }
   ]
 }
@@ -87,7 +80,3 @@ Questions are automatically ordered from least to most intimate:
 3. Final third: Deep and vulnerable (fears, regrets)
 
 The last 2-3 questions include `hideCursors: true` for privacy.
-
-## Voice
-
-Audio is generated using Hume AI's "Dacher" voice - a friendly, warm narrator voice that creates an emotionally-resonating experience.

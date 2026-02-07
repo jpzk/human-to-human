@@ -2,20 +2,15 @@
 /**
  * Deck Generator Script
  * 
- * Generates a complete deck with questions and TTS audio files.
+ * Generates a complete deck with AI-generated questions.
  * 
  * Usage:
  *   npx tsx decks/generate-deck.ts --theme "friends" --questions 10
- *   npx tsx decks/generate-deck.ts -t "couples" -q 8 --voice <voice-id>
- *   npx tsx decks/generate-deck.ts -t "work" -v ee96fb5f-ec1a-4f41-a9ba-6d119e64c8fd
+ *   npx tsx decks/generate-deck.ts -t "couples" -q 8
  * 
  * Output:
  *   decks/<deck-name>/
- *     deck.json          - Deck data with audio file references
- *     intro.mp3          - Introduction narration
- *     q1_<name>.mp3      - Question 1 audio
- *     q2_<name>.mp3      - Question 2 audio
- *     ...
+ *     deck.json          - Deck data with questions
  */
 
 import * as fs from "fs";
@@ -58,10 +53,6 @@ loadEnv();
 
 // API Configuration
 const MINIMAX_API_URL = "https://api.minimax.io/v1/text/chatcompletion_v2";
-const HUME_API_URL = "https://api.hume.ai/v0/tts";
-
-// Default voice ID for narrator (Hume AI custom voice)
-const DEFAULT_VOICE_ID = "ee96fb5f-ec1a-4f41-a9ba-6d119e64c8fd";
 
 // Types
 interface Card {
@@ -69,13 +60,11 @@ interface Card {
   question: string;
   type: "buttons" | "slider";
   answers: string[];
-  audioFile?: string;
 }
 
 interface GeneratedDeck {
   deck_name: string;
   introduction: string;
-  introAudioFile?: string;
   cards: Card[];
 }
 
@@ -87,19 +76,11 @@ interface MinimaxResponse {
   }>;
 }
 
-interface HumeTTSResponse {
-  generations: Array<{
-    audio: string;
-    duration: number;
-  }>;
-}
-
 // Parse command line arguments
-function parseArgs(): { theme: string; questions: number; voiceId: string } {
+function parseArgs(): { theme: string; questions: number } {
   const args = process.argv.slice(2);
   let theme = "";
   let questions = 10;
-  let voiceId = DEFAULT_VOICE_ID;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--theme" || args[i] === "-t") {
@@ -108,20 +89,17 @@ function parseArgs(): { theme: string; questions: number; voiceId: string } {
     } else if (args[i] === "--questions" || args[i] === "-q") {
       questions = parseInt(args[i + 1] || "10", 10);
       i++;
-    } else if (args[i] === "--voice" || args[i] === "-v") {
-      voiceId = args[i + 1] || DEFAULT_VOICE_ID;
-      i++;
     }
   }
 
   if (!theme) {
     console.error("Error: --theme is required");
-    console.error("Usage: npx tsx decks/generate-deck.ts --theme <theme> [--questions <number>] [--voice <voice-id>]");
+    console.error("Usage: npx tsx decks/generate-deck.ts --theme <theme> [--questions <number>]");
     console.error("Example: npx tsx decks/generate-deck.ts --theme friends --questions 10");
     process.exit(1);
   }
 
-  return { theme, questions, voiceId };
+  return { theme, questions };
 }
 
 // Extract JSON from potentially markdown-wrapped response
@@ -307,65 +285,6 @@ async function generateDeckContent(theme: string, numQuestions: number): Promise
   return deck;
 }
 
-// Generate TTS audio using Hume AI with exponential backoff retry
-async function generateAudio(text: string, outputPath: string, voiceId: string): Promise<void> {
-  const apiKey = process.env.HUME_API_KEY;
-  if (!apiKey) {
-    throw new Error("HUME_API_KEY not set in environment");
-  }
-
-  const maxRetries = 5;
-  let delay = 1000; // Start with 1 second
-
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const response = await fetch(HUME_API_URL, {
-      method: "POST",
-      headers: {
-        "X-Hume-Api-Key": apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        utterances: [
-          {
-            text,
-            voice: {
-              id: voiceId,
-            },
-          },
-        ],
-      }),
-    });
-
-    // Check for rate limiting (429) or service unavailable (503)
-    if (response.status === 429 || response.status === 503) {
-      if (attempt < maxRetries) {
-        console.log(`   ⚠️  Rate limited (${response.status}), retrying in ${delay / 1000}s...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 2; // Exponential backoff
-        continue;
-      }
-    }
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Hume TTS API error (${response.status}): ${errorText}`);
-    }
-
-    const data: HumeTTSResponse = await response.json();
-
-    if (!data.generations || data.generations.length === 0) {
-      throw new Error("No audio generated from Hume TTS API");
-    }
-
-    // Decode base64 and save as MP3
-    const audioBuffer = Buffer.from(data.generations[0].audio, "base64");
-    fs.writeFileSync(outputPath, audioBuffer);
-    return;
-  }
-
-  throw new Error(`Hume TTS API rate limited after ${maxRetries + 1} attempts`);
-}
-
 // Create slug from deck name
 function slugify(text: string): string {
   return text
@@ -376,15 +295,14 @@ function slugify(text: string): string {
 
 // Main function
 async function main() {
-  const { theme, questions, voiceId } = parseArgs();
+  const { theme, questions } = parseArgs();
 
   console.log("\n🎴 Deck Generator");
   console.log("================");
   console.log(`Theme: ${theme}`);
   console.log(`Questions: ${questions}`);
-  console.log(`Voice ID: ${voiceId}`);
 
-  // Validate API keys early
+  // Validate API key early
   if (!process.env.MINIMAX_API_KEY) {
     throw new Error(
       "MINIMAX_API_KEY not found.\n" +
@@ -392,14 +310,7 @@ async function main() {
       "MINIMAX_API_KEY=your-api-key"
     );
   }
-  if (!process.env.HUME_API_KEY) {
-    throw new Error(
-      "HUME_API_KEY not found.\n" +
-      "Make sure your .env file exists in the project root and contains:\n" +
-      "HUME_API_KEY=your-api-key"
-    );
-  }
-  console.log("✅ API keys loaded");
+  console.log("✅ API key loaded");
 
   // Step 1: Generate deck content
   const deck = await generateDeckContent(theme, questions);
@@ -417,39 +328,13 @@ async function main() {
 
   console.log(`\n📁 Output directory: ${outputDir}`);
 
-  // Step 3: Generate introduction audio
-  console.log("\n🎙️  Generating audio files...");
-  console.log(`   [1/${questions + 1}] Introduction...`);
-  
-  const introAudioFile = "intro.mp3";
-  await generateAudio(deck.introduction, path.join(outputDir, introAudioFile), voiceId);
-  deck.introAudioFile = introAudioFile;
-
-  // Step 4: Generate audio for each question
-  for (let i = 0; i < deck.cards.length; i++) {
-    const card = deck.cards[i];
-    const audioFile = `q${i + 1}_${card.card_name}.mp3`;
-    
-    console.log(`   [${i + 2}/${questions + 1}] ${card.card_name}...`);
-    
-    await generateAudio(card.question, path.join(outputDir, audioFile), voiceId);
-    card.audioFile = audioFile;
-    
-    // Small delay to avoid rate limiting
-    await new Promise(resolve => setTimeout(resolve, 500));
-  }
-
-  // Step 5: Save deck JSON
+  // Step 3: Save deck JSON
   const jsonPath = path.join(outputDir, "deck.json");
   fs.writeFileSync(jsonPath, JSON.stringify(deck, null, 2));
 
   console.log("\n✅ Deck generation complete!");
-  console.log(`\n📦 Output files:`);
+  console.log(`\n📦 Output file:`);
   console.log(`   ${jsonPath}`);
-  console.log(`   ${path.join(outputDir, introAudioFile)}`);
-  for (const card of deck.cards) {
-    console.log(`   ${path.join(outputDir, card.audioFile!)}`);
-  }
 
   console.log("\n🎉 Done!\n");
 }

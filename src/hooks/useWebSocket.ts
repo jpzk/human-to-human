@@ -6,7 +6,18 @@ function getWsUrl(roomId: string): string {
   if (import.meta.env.DEV) {
     return `ws://127.0.0.1:1999${path}`;
   }
+  
+  // In production, use VITE_PARTYKIT_HOST if set (for Vercel + PartyKit deployment)
+  // Otherwise fall back to same host (for PartyKit serving frontend)
+  const partykitHost = import.meta.env.VITE_PARTYKIT_HOST;
   const protocol = location.protocol === "https:" ? "wss:" : "ws:";
+  
+  if (partykitHost) {
+    // Remove protocol if present, we'll add our own
+    const host = partykitHost.replace(/^https?:\/\//, "").replace(/\/$/, "");
+    return `${protocol}//${host}${path}`;
+  }
+  
   return `${protocol}//${location.host}${path}`;
 }
 

@@ -1,6 +1,6 @@
 ![Human to Human Logo](./public/logo-name.png)
 
-Created in 10 hours in a team of 3 people at the [Cursor AI Hackathon 2026](https://luma.com/hl7wv7k3?tk=JcBLTk), used AI tools include Cursor, MiniMax, Hume.ai. 
+Created in 10 hours in a team of 3 people at the [Cursor AI Hackathon 2026](https://luma.com/hl7wv7k3?tk=JcBLTk), used AI tools include Cursor and MiniMax. 
 
 **TLDR** Hands is AI-infused humane tech for IRL events to find human connection in friends or your next co-founder. It's an UX-focused multiplayer experience (think Miro) that asks thought provoking/intimate questions while keeping identities hidden. Once a session is over participants are able to double opt-in to reveal their identities and connect. 
 
@@ -23,7 +23,6 @@ Once you're done reading about your compatibility scores (which are definitely n
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS (the usual suspects)
 - **Backend**: PartyKit (WebSocket server that handles all the real-time chaos)
 - **AI**: MiniMax API for generating narratives and connection insights (turns data into poetry)
-- **Audio**: Prerecorded MP3 files (we tried TTS, but it sounded like a robot reading a grocery list)
 - **Deployment**: Docker (because "it works on my machine" isn't a deployment strategy)
 
 ## Prerequisites
@@ -66,9 +65,8 @@ The project includes a Makefile with convenient commands for common tasks:
 
 #### Deck Generation
 
-- **`make generate-deck THEME="theme-name" QUESTIONS=10`** - Generate a new deck with TTS audio
+- **`make generate-deck THEME="theme-name" QUESTIONS=10`** - Generate a new deck with AI-generated questions
   - Example: `make generate-deck THEME="friends" QUESTIONS=10`
-  - Optional: `VOICE="voice-id"` to specify a voice
 
 #### Production Deployment
 
@@ -106,17 +104,16 @@ src/
 ├── types/           # TypeScript types (because types are good)
 └── server.ts        # PartyKit server (the thing that handles WebSocket chaos)
 
-decks/               # Question decks with audio files
-public/decks/        # Served audio files (MP3s for each question)
+decks/               # Question decks
 ```
 
 ## How It Works
 
 1. **Lobby**: Host creates a room, picks a deck (friendship, love, office drama—you know, the classics), and shares the link. Other players join and get assigned random animal names and colors. You might be "Swift Panda" or "Calm Owl" or "Rusty Bee"—embrace your new identity.
 
-2. **Intro**: Players listen to an intro audio that sets the mood (or skip it if you're impatient—we won't judge). Then everyone waits for 75% of players to be ready. It's like waiting for everyone to arrive at a party, but digital and with less awkward small talk.
+2. **Intro**: Players read the deck introduction that sets the mood. Then everyone waits for 75% of players to be ready. It's like waiting for everyone to arrive at a party, but digital and with less awkward small talk.
 
-3. **Answering**: Questions appear one at a time, like a gentle interrogation. Players answer via multiple choice buttons or sliders (because sometimes you need nuance). Audio plays for each question if enabled (because reading is hard). Once everyone answers, it auto-advances. No take-backsies—your first instinct is your final answer, just like life.
+3. **Answering**: Questions appear one at a time, like a gentle interrogation. Players answer via multiple choice buttons or sliders (because sometimes you need nuance). Once everyone answers, it auto-advances. No take-backsies—your first instinct is your final answer, just like life.
 
 4. **Results**: Compatibility scores are calculated using advanced math (exact matches for choices, proximity calculations for sliders). The AI then generates a narrative about your group's answers, turning "you both prefer mornings" into a beautiful story about cosmic alignment. Players can see their matches ranked by compatibility—it's like a leaderboard, but for friendship potential.
 
@@ -128,8 +125,6 @@ public/decks/        # Served audio files (MP3s for each question)
 
 - **Real-time cursors**: See where other players are moving their mouse in real-time. It's oddly intimate watching someone's cursor hover over an answer, knowing they're thinking about it. Click their cursor to nudge them (with a 10-second cooldown, because we're not monsters who spam-nudge people).
 
-- **Audio playback**: Prerecorded MP3 files for questions, because sometimes you want to hear the question instead of reading it. Toggle on/off because some people have ears and some people have headphones and some people are in a library.
-
 - **AI narratives**: MiniMax generates beautiful stories about your group's answers, turning data points into poetry. Falls back to perfectly fine templates if the API fails or you're running it locally without an API key. The templates won't judge you, we promise.
 
 - **Connection insights**: The AI explains why you're compatible with someone in a way that's more poetic than "you both answered similarly." It's like having a friend who's really good at explaining why you and someone else would get along.
@@ -138,14 +133,14 @@ public/decks/        # Served audio files (MP3s for each question)
 
 ## Decks
 
-Decks are JSON files with questions, answer options, and audio file references. Think of them as conversation starters, but structured and with audio. Currently available:
+Decks are JSON files with questions and answer options. Think of them as conversation starters, but structured. Currently available:
 
 - **Friendship Fortunes**: For when you want to deepen existing friendships or make new ones
 - **Love in Harmony**: For couples who want to learn more about each other (or confirm they're compatible)
 - **Whispers of the Heart**: For those deep, meaningful conversations
 - **Office Allies**: For team building that doesn't involve trust falls or awkward icebreakers
 
-Want to add more? Create a deck JSON and corresponding audio files. The structure should be obvious if you look at existing decks—we believe in learning by example, not by reading documentation.
+Want to add more? Create a deck JSON file. The structure should be obvious if you look at existing decks—we believe in learning by example, not by reading documentation.
 
 ## Environment Variables
 
@@ -157,9 +152,7 @@ Want to add more? Create a deck JSON and corresponding audio files. The structur
 
 - **Rate limiting is basic**: Don't abuse it or we'll add CAPTCHA, and nobody wants that. Be nice to the servers, they're trying their best.
 
-- **Audio files are large**: Host them on a CDN if you care about load times. Or don't, and watch your users wait. Your call.
-
-- **No mobile optimization**: Desktop only, because we're not masochists and mobile WebSocket + cursor tracking + audio playback is a special kind of hell. Maybe one day, but today is not that day.
+- **No mobile optimization**: Desktop only, because we're not masochists and mobile WebSocket + cursor tracking is a special kind of hell. Maybe one day, but today is not that day.
 
 ## Contributing
 
@@ -171,7 +164,7 @@ Check the LICENSE file if you care about that sort of thing. Or don't. We're not
 
 ## Credits
 
-Built with Cursor (the AI coding assistant that made this possible), MiniMax (for turning data into poetry), and Hume.ai (for the audio magic). These tools are pretty great, and we're grateful they exist.
+Built with Cursor (the AI coding assistant that made this possible) and MiniMax (for turning data into poetry). These tools are pretty great, and we're grateful they exist.
 
 ---
 

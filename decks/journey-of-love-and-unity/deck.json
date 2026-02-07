@@ -9,8 +9,7 @@
       "answers": [
         "All about the romance",
         "Totally practical"
-      ],
-      "audioFile": "q1_romance_vs_practicality.mp3"
+      ]
     },
     {
       "card_name": "ideal_date_night",
@@ -21,8 +20,7 @@
         "Watching a movie at home",
         "Exploring a new city",
         "Stargazing in the countryside"
-      ],
-      "audioFile": "q2_ideal_date_night.mp3"
+      ]
     },
     {
       "card_name": "marriage_household_chores",
@@ -33,8 +31,7 @@
         "We have assigned chores",
         "It depends on the day",
         "We hire help"
-      ],
-      "audioFile": "q3_marriage_household_chores.mp3"
+      ]
     },
     {
       "card_name": "marriage_role_models",
@@ -45,8 +42,7 @@
         "The Duke and Duchess of Cambridge - grace and commitment",
         "Beyoncé and Jay-Z - overcoming challenges together",
         "John Legend and Chrissy Teigen - humor and mutual support"
-      ],
-      "audioFile": "q4_marriage_role_models.mp3"
+      ]
     },
     {
       "card_name": "marriage_dream_location",
@@ -57,8 +53,7 @@
         "In a cozy cabin in the mountains",
         "In a bustling city full of life",
         "In a quiet countryside cottage"
-      ],
-      "audioFile": "q5_marriage_dream_location.mp3"
+      ]
     },
     {
       "card_name": "marriage_love_language",
@@ -69,8 +64,7 @@
         "Quality time",
         "Receiving gifts",
         "Acts of service"
-      ],
-      "audioFile": "q6_marriage_love_language.mp3"
+      ]
     },
     {
       "card_name": "marriage_regret",
@@ -81,8 +75,7 @@
         "Not stood up for myself enough",
         "Let conflicts fester unresolved",
         "Taken the relationship for granted"
-      ],
-      "audioFile": "q7_marriage_regret.mp3"
+      ]
     },
     {
       "card_name": "marriage_openness_vs_independence",
@@ -91,8 +84,7 @@
       "answers": [
         "Complete openness",
         "Some independence"
-      ],
-      "audioFile": "q8_marriage_openness_vs_independence.mp3"
+      ]
     },
     {
       "card_name": "marriage_toughest_struggle",
@@ -103,8 +95,7 @@
         "Financial stress",
         "Family conflicts",
         "Different priorities"
-      ],
-      "audioFile": "q9_marriage_toughest_struggle.mp3"
+      ]
     },
     {
       "card_name": "marriage_deepest_fear",
@@ -113,9 +104,7 @@
       "answers": [
         "Growing apart",
         "Feeling trapped"
-      ],
-      "audioFile": "q10_marriage_deepest_fear.mp3"
+      ]
     }
-  ],
-  "introAudioFile": "intro.mp3"
+  ]
 }

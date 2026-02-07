@@ -7,7 +7,6 @@ function cardToQuestion(card: Card): Question {
   const baseQuestion = {
     id: card.card_name,
     text: card.question,
-    audioFile: card.audioFile,
   };
 
   if (card.type === "buttons") {
