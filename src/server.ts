@@ -172,6 +172,7 @@ export default class GameServer implements Party.Server {
   private introReadyPlayers = new Set<string>(); // Track who's ready on intro screen
   private connectionInsights: Map<string, Map<string, string>> = new Map(); // userId → (otherUserId → reason)
   private connectionInsightsGenerationPromise: Promise<void> | null = null; // Track ongoing connection insights generation
+  private topMatches: Map<string, Set<string>> = new Map(); // userId → Set of top match userIds
   private nudgeCooldowns = new Map<string, Map<string, number>>(); // senderId → (targetId → timestamp)
   private hostId: string | null = null; // Track the host (initiator who configured the lobby)
   
@@ -724,6 +725,7 @@ export default class GameServer implements Party.Server {
     // Clear ready players sets
     this.resultsReadyPlayers.clear();
     this.introReadyPlayers.clear();
+    this.topMatches.clear();
     // Clear user answers (but keep users for lobby)
     for (const user of this.users.values()) {
       user.answers.clear();
@@ -956,6 +958,10 @@ export default class GameServer implements Party.Server {
     return this.connectionInsights.get(userId)?.get(otherUserId);
   }
 
+  private isTopMatchForUser(userId: string, otherUserId: string): boolean {
+    return this.topMatches.get(userId)?.has(otherUserId) === true;
+  }
+
   private async generateConnectionInsights(): Promise<void> {
     // If already generating, don't start another
     if (this.connectionInsightsGenerationPromise) {
@@ -974,7 +980,7 @@ export default class GameServer implements Party.Server {
         }
 
         const connectedUsers = [...this.room.getConnections()];
-        const pairs: Array<{
+        const pairCandidates: Array<{
           userAId: string;
           userBId: string;
           userAName: string;
@@ -983,6 +989,8 @@ export default class GameServer implements Party.Server {
           agreements: string[];
           differences: string[];
         }> = [];
+        const perUserScores = new Map<string, Array<{ otherId: string; score: number }>>();
+        const TOP_MATCHES_LIMIT = 4;
 
         // Collect all pairs with their agreements/differences
         for (let i = 0; i < connectedUsers.length; i++) {
@@ -998,6 +1006,11 @@ export default class GameServer implements Party.Server {
             const score = this.calculateCompatibility(userA, userB);
             const agreements: Array<{ label: string; strength: number }> = [];
             const differences: Array<{ label: string; strength: number }> = [];
+
+            if (!perUserScores.has(userAConn.id)) perUserScores.set(userAConn.id, []);
+            if (!perUserScores.has(userBConn.id)) perUserScores.set(userBConn.id, []);
+            perUserScores.get(userAConn.id)!.push({ otherId: userBConn.id, score });
+            perUserScores.get(userBConn.id)!.push({ otherId: userAConn.id, score });
 
             // Analyze agreements and differences
             for (const [qId, answerMetaA] of userA.answers) {
@@ -1071,7 +1084,7 @@ export default class GameServer implements Party.Server {
               .map((item) => item.label);
 
             // Generate insights for all pairs (batch API call)
-            pairs.push({
+            pairCandidates.push({
               userAId: userAConn.id,
               userBId: userBConn.id,
               userAName: userA.name,
@@ -1082,6 +1095,26 @@ export default class GameServer implements Party.Server {
             });
           }
         }
+
+        if (pairCandidates.length === 0) {
+          return;
+        }
+
+        // Compute top matches per user (limit to TOP_MATCHES_LIMIT)
+        this.topMatches = new Map();
+        for (const [userId, scores] of perUserScores.entries()) {
+          const top = scores
+            .sort((a, b) => b.score - a.score)
+            .slice(0, TOP_MATCHES_LIMIT)
+            .map((item) => item.otherId);
+          this.topMatches.set(userId, new Set(top));
+        }
+
+        const pairs = pairCandidates.filter(
+          (pair) =>
+            this.isTopMatchForUser(pair.userAId, pair.userBId) &&
+            this.isTopMatchForUser(pair.userBId, pair.userAId)
+        );
 
         if (pairs.length === 0) {
           return;
@@ -1157,7 +1190,9 @@ export default class GameServer implements Party.Server {
         anonymousName: otherUser.name,
         score,
         rank: 0,
-        connectionReason: this.getConnectionInsight(connection.id, otherConn.id),
+        connectionReason: this.isTopMatchForUser(connection.id, otherConn.id)
+          ? this.getConnectionInsight(connection.id, otherConn.id)
+          : undefined,
       });
     }
 
