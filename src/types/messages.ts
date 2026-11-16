@@ -227,6 +227,14 @@ export type ChatClosedMessage = {
   chatId: string;
 };
 
+// Sent once everyone answered the current question, a few seconds before
+// QUESTION_ADVANCE, so clients can show who (by anonymous name) picked what.
+export type AnswerRevealMessage = {
+  type: "ANSWER_REVEAL";
+  questionId: string;
+  answers: { id: string; name: string; color: string; answerId?: string; value?: number }[];
+};
+
 export type ServerMessage =
   | SyncMessage
   | JoinMessage
@@ -246,7 +254,8 @@ export type ServerMessage =
   | RevealRequestNotificationMessage
   | ChatStartedMessage
   | ChatMessageReceive
-  | ChatClosedMessage;
+  | ChatClosedMessage
+  | AnswerRevealMessage;
 
 // Type Guards (validators)
 const MAX_ID_LENGTH = 64;

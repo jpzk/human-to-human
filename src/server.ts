@@ -18,6 +18,7 @@ import {
   type RevealStatusMessage,
   type RevealMutualMessage,
   type QuestionAdvanceMessage,
+  type AnswerRevealMessage,
   type NarrativeMessage,
   type ReadyStatusMessage,
   type IntroReadyMessage,
@@ -154,8 +155,16 @@ function getQuestions(config: LobbyConfig | null): Question[] {
   return deck ? deckToQuestions(deck) : [];
 }
 
+const REVEAL_MS = 4600;
+
 export default class GameServer implements Party.Server {
   private users = new Map<string, UserState>();
+  // projector screens: receive everything, never count as players
+  private screens = new Set<string>();
+
+  private players(): Party.Connection[] {
+    return [...this.room.getConnections()].filter((c) => this.users.has(c.id));
+  }
   private phase: GamePhase = GamePhase.LOBBY;
   private currentQuestionIndex: number = 0;
   private revealRequests = new Map<string, Set<string>>(); // requesterId → Set<targetIds>
@@ -170,6 +179,7 @@ export default class GameServer implements Party.Server {
   private connectionInsights: Map<string, Map<string, string>> = new Map(); // userId → (otherUserId → reason)
   private connectionInsightsGenerationPromise: Promise<void> | null = null; // Track ongoing connection insights generation
   private nudgeCooldowns = new Map<string, Map<string, number>>(); // senderId → (targetId → timestamp)
+  private revealTimer: ReturnType<typeof setTimeout> | null = null; // answer reveal before the next question
   private hostId: string | null = null; // Track the host (initiator who configured the lobby)
   
   // Chat session management
@@ -231,20 +241,25 @@ export default class GameServer implements Party.Server {
     return variantColor;
   }
 
-  onConnect(connection: Party.Connection, _ctx: Party.ConnectionContext): void {
-    // Assign random name and unique color
-    const name = randomName();
-    const color = this.getUniqueColor();
-    this.users.set(connection.id, { name, color, answers: new Map() });
+  onConnect(connection: Party.Connection, ctx: Party.ConnectionContext): void {
+    const isScreen = new URL(ctx.request.url).searchParams.has("screen");
+    if (isScreen) {
+      this.screens.add(connection.id);
+    } else {
+      // Assign random name and unique color
+      const name = randomName();
+      const color = this.getUniqueColor();
+      this.users.set(connection.id, { name, color, answers: new Map() });
 
-    // Broadcast join to others
-    this.room.broadcast(
-      JSON.stringify({ type: "join", id: connection.id, name, color }),
-      [connection.id]
-    );
+      // Broadcast join to others
+      this.room.broadcast(
+        JSON.stringify({ type: "join", id: connection.id, name, color }),
+        [connection.id]
+      );
+    }
 
     // Send sync payload to new connection
-    const users = [...this.room.getConnections()].map((c) => {
+    const users = this.players().map((c) => {
       const u = this.users.get(c.id);
       return {
         id: c.id,
@@ -302,7 +317,7 @@ export default class GameServer implements Party.Server {
     connection.send(JSON.stringify(syncMsg));
 
     // If in RESULTS or REVEAL phase, send appropriate data
-    if (this.phase === GamePhase.RESULTS || this.phase === GamePhase.REVEAL) {
+    if (!isScreen && (this.phase === GamePhase.RESULTS || this.phase === GamePhase.REVEAL)) {
       this.sendResultsToConnection(connection);
     }
   }
@@ -316,6 +331,7 @@ export default class GameServer implements Party.Server {
     } catch {
       return;
     }
+    if (this.screens.has(sender.id)) return; // screens only watch
 
     // Handle cursor updates (broadcast to others)
     if (isValidCursorMessage(payload)) {
@@ -370,7 +386,7 @@ export default class GameServer implements Party.Server {
 
       // Auto-advance if all players answered current question
       if (this.checkAllAnsweredCurrentQuestion()) {
-        this.advanceToNextQuestion();
+        this.revealThenAdvance();
       }
       return;
     }
@@ -410,7 +426,7 @@ export default class GameServer implements Party.Server {
 
       // Auto-advance if all players answered current question
       if (this.checkAllAnsweredCurrentQuestion()) {
-        this.advanceToNextQuestion();
+        this.revealThenAdvance();
       }
       return;
     }
@@ -436,7 +452,7 @@ export default class GameServer implements Party.Server {
         if (this.phase !== GamePhase.LOBBY) return;
         // Only allow host to start the game
         if (this.hostId === null || sender.id !== this.hostId) return;
-        const connectedUsers = [...this.room.getConnections()];
+        const connectedUsers = this.players();
         // Require at least 2 players to start
         if (connectedUsers.length < 2) return;
         // Ensure lobby is configured
@@ -765,6 +781,8 @@ export default class GameServer implements Party.Server {
     }
     // Reset question index
     this.currentQuestionIndex = 0;
+    if (this.revealTimer) clearTimeout(this.revealTimer);
+    this.revealTimer = null;
   }
 
   private handleConfigureLobby(payload: { deck?: string }): void {
@@ -786,7 +804,7 @@ export default class GameServer implements Party.Server {
     }
     
     // Send updated config to all players
-    const allUsers = [...this.room.getConnections()].map((c) => {
+    const allUsers = this.players().map((c) => {
       const u = this.users.get(c.id);
       return {
         id: c.id,
@@ -821,6 +839,7 @@ export default class GameServer implements Party.Server {
 
   private leave(connection: Party.Connection): void {
     const userId = connection.id;
+    if (this.screens.delete(userId)) return;
     
     // Close any active chats this user is in
     for (const [chatId, session] of this.activeChats.entries()) {
@@ -863,12 +882,12 @@ export default class GameServer implements Party.Server {
 
     // Recalculate if in ANSWERING phase
     if (this.phase === GamePhase.ANSWERING && this.checkAllAnsweredCurrentQuestion()) {
-      this.advanceToNextQuestion();
+      this.revealThenAdvance();
     }
   }
 
   private checkAllAnsweredCurrentQuestion(): boolean {
-    const connectedUsers = [...this.room.getConnections()];
+    const connectedUsers = this.players();
 
     // Need at least 2 players
     if (connectedUsers.length < 2) return false;
@@ -885,6 +904,30 @@ export default class GameServer implements Party.Server {
       const user = this.users.get(conn.id);
       return user && user.answers.has(currentQuestion.id);
     });
+  }
+
+  // Everyone answered: show the answers for REVEAL_MS, then move on.
+  private revealThenAdvance(): void {
+    if (this.revealTimer) return;
+    const question = this.questions[this.currentQuestionIndex];
+    if (!question) return this.advanceToNextQuestion();
+    const answers: AnswerRevealMessage["answers"] = [];
+    for (const conn of this.room.getConnections()) {
+      const u = this.users.get(conn.id);
+      const a = u?.answers.get(question.id);
+      if (!u || !a) continue;
+      answers.push(
+        a.value.type === "choice"
+          ? { id: conn.id, name: u.name, color: u.color, answerId: a.value.answerId }
+          : { id: conn.id, name: u.name, color: u.color, value: a.value.value },
+      );
+    }
+    const msg: AnswerRevealMessage = { type: "ANSWER_REVEAL", questionId: question.id, answers };
+    this.room.broadcast(JSON.stringify(msg));
+    this.revealTimer = setTimeout(() => {
+      this.revealTimer = null;
+      if (this.phase === GamePhase.ANSWERING) this.advanceToNextQuestion();
+    }, REVEAL_MS);
   }
 
   private advanceToNextQuestion(): void {
@@ -973,7 +1016,7 @@ export default class GameServer implements Party.Server {
     this.room.broadcast(JSON.stringify(phaseChange));
 
     // Send personalized results to each connection
-    for (const connection of this.room.getConnections()) {
+    for (const connection of this.players()) {
       this.sendResultsToConnection(connection);
     }
 
@@ -1117,7 +1160,7 @@ export default class GameServer implements Party.Server {
           return;
         }
 
-        const connectedUsers = [...this.room.getConnections()];
+        const connectedUsers = this.players();
         const pairs: Array<{
           userAId: string;
           userBId: string;
@@ -1231,7 +1274,7 @@ export default class GameServer implements Party.Server {
         // Re-send results to all connections with updated connection reasons
         // Only if we're still in RESULTS or REVEAL phase
         if (this.phase === GamePhase.RESULTS || this.phase === GamePhase.REVEAL) {
-          for (const connection of this.room.getConnections()) {
+          for (const connection of this.players()) {
             this.sendResultsToConnection(connection);
           }
         }
@@ -1250,7 +1293,7 @@ export default class GameServer implements Party.Server {
     const user = this.users.get(connection.id);
     if (!user) return;
 
-    const connectedUsers = [...this.room.getConnections()];
+    const connectedUsers = this.players();
     const scores: CompatibilityScore[] = [];
 
     // Calculate compatibility with all other users

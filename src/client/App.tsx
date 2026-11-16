@@ -1,14 +1,19 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { AnsweringView } from "@/components/game/AnsweringView";
 import { ResultsView } from "@/components/game/ResultsView";
 import { RevealView } from "@/components/game/RevealView";
-import { CreateLobbyView } from "@/components/game/CreateLobbyView";
+import { Landing } from "@/components/landing/Landing";
 import { WaitingLobbyView } from "@/components/game/WaitingLobbyView";
 import { IntroView } from "@/components/game/IntroView";
 import { NudgeNotification } from "@/components/game/NudgeNotification";
 import { RevealRequestNotification } from "@/components/game/RevealRequestNotification";
 import { ChatModal } from "@/components/game/ChatModal";
 import { Cursor } from "@/components/game/Cursor";
+import { Creature } from "@/components/creature/Creature";
+import { PresenceStrip } from "@/components/game/PresenceStrip";
+import { ScreenLobby, ScreenReveal } from "@/components/game/ScreenViews";
+import { MutualRevealCelebration } from "@/components/game/MutualRevealCelebration";
+import { AnimatePresence } from "framer-motion";
 import { GamePhase } from "@/types/game";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useGameState } from "@/hooks/useGameState";
@@ -27,7 +32,22 @@ function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
 }
 
+function useIsMobile() {
+  const query = "(max-width: 760px)";
+  const [m, setM] = useState(() => window.matchMedia(query).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(query);
+    const on = () => setM(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return m;
+}
+
 export default function App() {
+  const isMobile = useIsMobile();
+  // projector screen: watches the room, never plays
+  const isScreen = useMemo(() => new URLSearchParams(location.search).has("screen"), []);
   const [scale, setScale] = useState(1);
   const [isClicking, setIsClicking] = useState(false);
   const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
@@ -119,8 +139,21 @@ export default function App() {
     activeChat,
     chatMessages,
     hostId,
+    answerReveal,
     addChatMessageLocally,
   } = gameState;
+
+  // Mutual reveal celebration: fires once per newly revealed partner
+  const [celebration, setCelebration] = useState<{ name: string; color: string } | null>(null);
+  const seenRevealsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    for (const [id, r] of revealedUsers) {
+      if (seenRevealsRef.current.has(id)) continue;
+      seenRevealsRef.current.add(id);
+      setCelebration({ name: r.name, color: r.color });
+    }
+  }, [revealedUsers]);
+  const endCelebration = useCallback(() => setCelebration(null), []);
 
   // Update myId ref when it changes
   useEffect(() => {
@@ -212,7 +245,7 @@ export default function App() {
   const displayColor = myColor || stableMyColor.current;
   
   // Hide native cursor when we have cursor identity (using stable values)
-  const cursorStyle = displayColor && displayName ? { cursor: "none" } : undefined;
+  const cursorStyle = displayColor && displayName && !isScreen ? { cursor: "none" } : undefined;
 
   const handleAnswer = (questionId: string, answerId: string) => {
     sendMessage({ type: "ANSWER", questionId, answerId });
@@ -329,13 +362,15 @@ export default function App() {
   useEffect(() => {
     const onResize = () => {
       setScale(
-        Math.min(window.innerWidth / VIEWPORT_W, window.innerHeight / VIEWPORT_H, 1)
+        isScreen
+          ? Math.min(window.innerWidth / VIEWPORT_W, window.innerHeight / (VIEWPORT_H * 1.22)) // projectors: fill the wall
+          : Math.min(window.innerWidth / VIEWPORT_W, window.innerHeight / VIEWPORT_H, 1)
       );
     };
     onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
-  }, []);
+  }, [isScreen]);
 
   // Cursor tracking - decoupled local rendering from server updates
   useEffect(() => {
@@ -366,6 +401,7 @@ export default function App() {
       lastSendRef.current = now;
       sendMessage({ type: "cursor", x, y });
     };
+    if (isScreen) return;
     document.addEventListener("mousemove", onMove);
     return () => document.removeEventListener("mousemove", onMove);
   }, [status, sendMessage]);
@@ -459,63 +495,34 @@ export default function App() {
     }
   }, [isCurrentUserIntroReady, sendMessage]);
 
-  // If no roomId in URL, show create lobby view
+  // If no roomId in URL, show the landing page (deck picker included)
   if (!roomId) {
-    return (
-      <div className="viewport-container">
-        <img 
-          src="/logo-name.svg" 
-          alt="Logo" 
-          className="absolute" 
-          style={{ 
-            height: `${64 * scale}px`,
-            top: `calc(50% - ${(VIEWPORT_H * scale) / 2 + 80 * scale}px)`
-          }} 
-        />
-        <div
-          className="viewport"
-          style={{
-            width: VIEWPORT_W,
-            height: VIEWPORT_H,
-            transform: `scale(${scale})`,
-          }}
-        >
-          <CreateLobbyView onCreateLobby={handleCreateLobby} />
-        </div>
-        <p 
-          className="absolute text-sm text-muted-foreground"
-          style={{
-            top: `calc(50% + ${(VIEWPORT_H * scale) / 2 + 16 * scale}px)`
-          }}
-        >
-          created with <span className="font-bold">Cursor</span>, <span className="font-bold">MiniMax</span> and <span className="font-bold">Hume.ai</span>
-        </p>
-      </div>
-    );
+    return <Landing onCreateLobby={handleCreateLobby} />;
   }
 
-  return (
+  // where each creature leaves from at the answer reveal (stage coordinates)
+  const revealStarts: Record<string, { x: number; y: number } | undefined> = {};
+  if (answerReveal && !isMobile) {
+    for (const [id, u] of Object.entries(users)) {
+      if (u.x != null && u.y != null) revealStarts[id] = { x: u.x, y: u.y };
+    }
+    const vp = viewportRef.current?.getBoundingClientRect();
+    if (myId && vp && mousePosition) {
+      revealStarts[myId] = {
+        x: ((mousePosition.x - vp.left) / vp.width) * VIEWPORT_W,
+        y: ((mousePosition.y - vp.top) / vp.height) * VIEWPORT_H,
+      };
+    }
+  }
+  const awayIds = new Set(answerReveal ? answerReveal.answers.map((a) => a.id) : []);
+
+  const views = (
     <>
-      <div className="viewport-container" style={cursorStyle}>
-        <img 
-          src="/logo-name.svg" 
-          alt="Logo" 
-          className="absolute" 
-          style={{ 
-            height: `${64 * scale}px`,
-            top: `calc(50% - ${(VIEWPORT_H * scale) / 2 + 80 * scale}px)`
-          }} 
-        />
-        <div
-          ref={viewportRef}
-          className="viewport"
-          style={{
-            width: VIEWPORT_W,
-            height: VIEWPORT_H,
-            transform: `scale(${scale})`,
-          }}
-        >
-          {phase === GamePhase.LOBBY && roomId && (
+          {phase === GamePhase.LOBBY && roomId && isScreen && (
+            <ScreenLobby users={users} joinLink={getRoomLink(roomId)} deckName={lobbyConfig?.deck || ""} />
+          )}
+          {phase === GamePhase.REVEAL && isScreen && <ScreenReveal users={users} />}
+          {phase === GamePhase.LOBBY && roomId && !isScreen && (
             <WaitingLobbyView
               users={users}
               myId={myId}
@@ -548,6 +555,8 @@ export default function App() {
                 myColor={displayColor}
                 onAnswer={handleAnswer}
                 onSliderAnswer={handleSliderAnswer}
+                answerReveal={answerReveal}
+                revealStarts={revealStarts}
               />
           )}
           {phase === GamePhase.RESULTS && (
@@ -558,16 +567,118 @@ export default function App() {
               totalPlayers={resultsTotalPlayers}
               isCurrentUserReady={isCurrentUserReady}
               onPlayerReady={handlePlayerReady}
+              users={users}
+              deckName={lobbyConfig?.deck || ""}
             />
           )}
-          {phase === GamePhase.REVEAL && (
+          {phase === GamePhase.REVEAL && !isScreen && (
             <RevealView
               matches={results}
               revealedUsers={revealedUsers}
+              users={users}
               onRevealRequest={handleRevealRequest}
               onResetGame={handleResetGame}
             />
           )}
+    </>
+  );
+
+  const overlays = (
+    <>
+      {/* Show nudge notification as fixed top-center banner */}
+      {myId && users[myId]?.nudgeNotification && (
+        <NudgeNotification
+          from={users[myId].nudgeNotification.from}
+          color={users[myId].nudgeNotification.color}
+        />
+      )}
+
+      {/* Show reveal request notifications */}
+      {Array.from(revealNotifications.entries())
+        .filter(([requesterId]) => !dismissedNotifications.has(requesterId))
+        .map(([requesterId, notification], index) => (
+          <RevealRequestNotification
+            key={requesterId}
+            requesterId={notification.requesterId}
+            requesterName={notification.requesterName}
+            requesterColor={notification.requesterColor}
+            onDismiss={() => handleDismissRevealNotification(requesterId)}
+            top={20 + index * 80}
+          />
+        ))}
+
+      <AnimatePresence>
+        {celebration && myName && myColor && (
+          <MutualRevealCelebration me={{ name: myName, color: myColor }} partner={celebration} onDone={endCelebration} />
+        )}
+      </AnimatePresence>
+
+      {/* Show chat modal (after the celebration) */}
+      {activeChat && !celebration && (
+        <ChatModal
+          chatId={activeChat.chatId}
+          partnerName={activeChat.partnerName}
+          partnerColor={activeChat.partnerColor}
+          messages={chatMessages}
+          onSendMessage={handleSendChatMessage}
+          onCloseRequest={handleCloseChat}
+        />
+      )}
+      
+
+    </>
+  );
+
+  if (isMobile && !isScreen) {
+    return (
+      <>
+        <div className="mobile-shell">
+          <header className="mobile-header">
+            <img src="/logo-name.svg" alt="hands" className="h-6" />
+            {myName && myColor && (
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-muted-foreground">You are</span>
+                <span className="font-bold">{myName}</span>
+                <Creature name={myName} color={myColor} size={34} />
+              </div>
+            )}
+          </header>
+          {phase !== GamePhase.LOBBY && (
+            <PresenceStrip
+              users={users}
+              myId={myId}
+              answered={phase === GamePhase.ANSWERING && currentQuestion ? answeredBy[currentQuestion.id] : undefined}
+            />
+          )}
+          <main className="mobile-stage">{views}</main>
+        </div>
+        {overlays}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <div className={`viewport-container${isScreen ? " screen-mode" : ""}`} style={cursorStyle}>
+        <img 
+          src="/logo-name.svg" 
+          alt="Logo" 
+          className="absolute" 
+          style={{ 
+            height: `${64 * scale}px`,
+            top: `calc(50% - ${(VIEWPORT_H * scale) / 2 + 80 * scale}px)`
+          }} 
+        />
+        <div
+          ref={viewportRef}
+          className="viewport"
+          style={{
+            width: VIEWPORT_W,
+            height: VIEWPORT_H,
+            transform: `scale(${scale})`,
+          }}
+        >
+          {views}
           <div className="cursors" aria-hidden>
             {Object.entries(users)
               .filter(([id]) => id !== myId)
@@ -595,9 +706,12 @@ export default function App() {
                     <Cursor
                       name={u.name}
                       color={u.color}
+                      x={u.x}
+                      y={u.y}
                       velocity={u.velocity}
                       dropEventId={dropEventId}
                       isOnCooldown={cooldownCheck}
+                      away={awayIds.has(id)}
                     />
                   </div>
                 );
@@ -615,8 +729,9 @@ export default function App() {
       </div>
       
       {/* Local player cursor - rendered like remote cursors for consistency */}
-      {displayName && 
-        displayColor && 
+      {!isScreen &&
+        displayName &&
+        displayColor &&
         mousePosition && (() => {
           const dropEventId = displayName ? dropEventIds[displayName] : undefined;
           return (
@@ -631,52 +746,42 @@ export default function App() {
               <Cursor
                 name={displayName}
                 color={displayColor}
-                velocity={0}
+                x={mousePosition.x}
+                y={mousePosition.y}
                 dropEventId={dropEventId}
                 isClicking={isClicking}
+                surprised={!!(myId && users[myId]?.nudgeNotification)}
+                away={!!myId && awayIds.has(myId)}
               />
             </div>
           );
         })()}
       
-      {/* Show nudge notification as fixed top-center banner */}
-      {myId && users[myId]?.nudgeNotification && (
-        <NudgeNotification
-          from={users[myId].nudgeNotification.from}
-          color={users[myId].nudgeNotification.color}
-        />
-      )}
+      {!isScreen && overlays}
 
-      {/* Show reveal request notifications */}
-      {Array.from(revealNotifications.entries())
-        .filter(([requesterId]) => !dismissedNotifications.has(requesterId))
-        .map(([requesterId, notification], index) => (
-          <RevealRequestNotification
-            key={requesterId}
-            requesterId={notification.requesterId}
-            requesterName={notification.requesterName}
-            requesterColor={notification.requesterColor}
-            onDismiss={() => handleDismissRevealNotification(requesterId)}
-            top={20 + index * 80}
-          />
-        ))}
+      {/* players on phones send no cursor; show them so desktop players still see everyone */}
+      {(() => {
+        const phoneUsers = Object.fromEntries(
+          Object.entries(users).filter(([id, u]) => id !== myId && (u.x == null || u.y == null)),
+        );
+        if (Object.keys(phoneUsers).length === 0 || phase === GamePhase.LOBBY || (isScreen && phase === GamePhase.REVEAL)) return null;
+        return (
+          <div className={`fixed bottom-2 right-3 z-10 flex items-center gap-1 rounded-2xl bg-background/80 backdrop-blur border border-border pl-3${isScreen ? " origin-bottom-right scale-150" : ""}`}>
+            <span className="text-[11px] text-muted-foreground whitespace-nowrap">On phones</span>
+            <PresenceStrip
+              users={phoneUsers}
+              myId={myId}
+              answered={phase === GamePhase.ANSWERING && currentQuestion ? answeredBy[currentQuestion.id] : undefined}
+            />
+          </div>
+        );
+      })()}
 
-      {/* Show chat modal */}
-      {activeChat && (
-        <ChatModal
-          chatId={activeChat.chatId}
-          partnerName={activeChat.partnerName}
-          partnerColor={activeChat.partnerColor}
-          messages={chatMessages}
-          onSendMessage={handleSendChatMessage}
-          onCloseRequest={handleCloseChat}
-        />
-      )}
-      
-      {roomId && myName && myColor && phase !== GamePhase.LOBBY && (
+      {roomId && myName && myColor && phase !== GamePhase.LOBBY && !isScreen && (
         <div className="status-bar">
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Your name:</span>
+            <Creature name={myName} color={myColor} size={36} />
+            <span className="text-sm text-muted-foreground">You are</span>
             <span
               className="text-sm font-bold"
               style={{ color: myColor }}

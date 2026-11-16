@@ -2,12 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import type { ClientMessage, ServerMessage } from "@/types/messages";
 
 function getWsUrl(roomId: string): string {
-  const path = `/parties/main/${roomId}`;
+  // ?screen opens a projector view that watches without playing
+  const screen = new URLSearchParams(location.search).has("screen") ? "?screen=1" : "";
+  const path = `/parties/main/${roomId}${screen}`;
   if (import.meta.env.DEV) {
     return `ws://127.0.0.1:1999${path}`;
   }
-  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-  return `${protocol}//${location.host}${path}`;
+  // the frontend can live on another host than the PartyKit server (Vercel + partykit.dev)
+  const host = import.meta.env.VITE_PARTYKIT_HOST || location.host;
+  const protocol = location.protocol === "https:" || host.endsWith(".partykit.dev") ? "wss:" : "ws:";
+  return `${protocol}//${host}${path}`;
 }
 
 type UseWebSocketOptions = {

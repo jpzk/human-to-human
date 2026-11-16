@@ -19,10 +19,10 @@ export function IntroView({
   onIntroReady,
 }: IntroViewProps) {
   return (
-    <div className="flex items-center justify-center h-full w-full bg-background">
-      <div className="w-full max-w-2xl px-8 py-12 space-y-8">
+    <div className="flex items-center justify-center h-full w-full bg-background mobile:min-h-full mobile:h-auto">
+      <div className="w-full max-w-2xl px-8 py-12 space-y-8 mobile:px-5">
         <div className="text-center space-y-4">
-          <p className="text-3xl text-black leading-relaxed font-bold">
+          <p className="text-3xl text-black leading-relaxed font-bold mobile:text-[20px]">
             {introduction}
           </p>
         </div>
@@ -31,7 +31,7 @@ export function IntroView({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="flex justify-center"
+          className="flex justify-center player-only"
         >
           <Button 
             onClick={onIntroReady} 

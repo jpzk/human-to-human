@@ -4,6 +4,8 @@ import { SliderQuestionCard } from "./SliderQuestionCard";
 import { QuestionType } from "@/types/game";
 import { getAnsweredCount, hasUserAnsweredQuestion } from "@/services/gameService";
 import type { Question } from "@/types/game";
+import type { AnswerRevealMessage } from "@/types/messages";
+import { AnswerRevealLayer } from "./AnswerRevealLayer";
 
 type AnsweringViewProps = {
   currentQuestion: Question | null;
@@ -16,6 +18,8 @@ type AnsweringViewProps = {
   myColor: string | null;
   onAnswer: (questionId: string, answerId: string) => void;
   onSliderAnswer: (questionId: string, value: number) => void;
+  answerReveal?: AnswerRevealMessage | null;
+  revealStarts?: Record<string, { x: number; y: number } | undefined>;
 };
 
 export function AnsweringView({
@@ -29,17 +33,21 @@ export function AnsweringView({
   myColor,
   onAnswer,
   onSliderAnswer,
+  answerReveal,
+  revealStarts = {},
 }: AnsweringViewProps) {
   if (!currentQuestion) return null;
   
   const totalQuestions = questions.length;
   const answeredCount = getAnsweredCount(currentQuestion.id, answeredBy);
   const hasAnswered = hasUserAnsweredQuestion(currentQuestion.id, myName, answeredBy);
+  const reveal = answerReveal && answerReveal.questionId === currentQuestion.id ? answerReveal : null;
+  const pickedIds = reveal ? reveal.answers.map((a) => a.answerId).filter((x): x is string => !!x) : undefined;
 
   return (
     <>
       {/* Question progress indicator */}
-      <div className="absolute top-[calc(50%+280px)] left-1/2 -translate-x-1/2 flex gap-2 z-10">
+      <div className="absolute top-[calc(50%+280px)] left-1/2 -translate-x-1/2 flex gap-2 z-10 mobile:fixed mobile:top-auto mobile:bottom-5">
         {questions.map((q, idx) => {
           const isAnswered = hasUserAnsweredQuestion(q.id, myName, answeredBy);
           const isCurrent = idx === currentQuestionIndex;
@@ -67,6 +75,7 @@ export function AnsweringView({
             onAnswer={onAnswer}
             hasAnswered={hasAnswered}
             myColor={myColor}
+            pickedIds={pickedIds}
           />
         ) : currentQuestion.type === QuestionType.SLIDER ? (
           <SliderQuestionCard
@@ -78,6 +87,14 @@ export function AnsweringView({
           />
         ) : null}
       </AnimatePresence>
+      {reveal && (
+        <AnswerRevealLayer
+          key={reveal.questionId}
+          reveal={reveal}
+          starts={revealStarts}
+          sliderPositions={currentQuestion.type === QuestionType.SLIDER ? currentQuestion.config.positions : undefined}
+        />
+      )}
     </>
   );
 }

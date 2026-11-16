@@ -1,0 +1,4 @@
+build/
+hands.apk
+hands.apk.idsig
+res/values/strings.xml

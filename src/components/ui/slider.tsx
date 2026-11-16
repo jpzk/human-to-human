@@ -61,7 +61,7 @@ export const Slider = React.forwardRef<HTMLInputElement, SliderProps>(
         {/* Slider track container */}
         <div className="relative pt-2 pb-8">
           {/* Track background */}
-          <div className="absolute top-2 left-0 right-0 h-2 bg-muted rounded-full" />
+          <div data-slider-track className="absolute top-2 left-0 right-0 h-2 bg-muted rounded-full" />
           
           {/* Active track fill */}
           <div

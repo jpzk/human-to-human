@@ -1,5 +1,7 @@
 import { useState } from "react";
-// import { QRCodeSVG } from "qrcode.react"; // Commented out for future use
+import { QRCodeSVG } from "qrcode.react";
+import { AnimatePresence, motion } from "framer-motion";
+import { Creature } from "@/components/creature/Creature";
 import { Button } from "@/components/ui/button";
 import type { LobbyConfig } from "@/types/game";
 
@@ -46,8 +48,8 @@ export function WaitingLobbyView({
   };
 
   return (
-    <div className="flex items-center justify-center h-full w-full bg-background">
-      <div className="w-full max-w-4xl px-8 py-12">
+    <div className="flex items-center justify-center h-full w-full bg-background mobile:h-auto mobile:min-h-full">
+      <div className="w-full max-w-4xl px-8 py-12 mobile:px-4 mobile:py-4">
         <div className="grid md:grid-cols-2 gap-8">
           {/* Left side: Player list and config */}
           <div className="space-y-6">
@@ -77,19 +79,23 @@ export function WaitingLobbyView({
               <div className="text-sm font-medium">
                 Players ({playerList.length})
               </div>
-              <div className="space-y-2">
-                {playerList.map((player, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 p-3 border border-border rounded-lg bg-background"
-                  >
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: player.color }}
-                    />
-                    <span className="font-medium">{player.name}</span>
-                  </div>
-                ))}
+              <div className="grid grid-cols-3 gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                <AnimatePresence initial={false}>
+                  {Object.entries(users).map(([id, player]) => (
+                    <motion.div
+                      key={id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.6, y: 12 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.6 }}
+                      transition={{ type: "spring", stiffness: 380, damping: 22 }}
+                      className={`flex flex-col items-center gap-1 py-2 px-1 rounded-xl border bg-background ${id === myId ? "border-foreground/40" : "border-border"}`}
+                    >
+                      <Creature name={player.name} color={player.color} size={56} />
+                      <span className="text-xs font-semibold text-center leading-tight">{player.name}</span>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             </div>
 
@@ -113,24 +119,21 @@ export function WaitingLobbyView({
 
           {/* Right side: Share Link */}
           <div className="flex flex-col items-center justify-center space-y-6">
-            {/* QR Code - Commented out for future use
-            <div className="p-6 bg-white rounded-lg border border-border">
-              <QRCodeSVG value={roomLink} size={200} />
-            </div>
-            */}
-
-            {/* Your Name Indicator */}
+            {/* Your creature */}
             {currentUser && (
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <span className="text-sm text-muted-foreground">Your name:</span>
-                <span
-                  className="text-base font-bold"
-                  style={{ color: currentUser.color }}
-                >
-                  {currentUser.name}
-                </span>
+              <div className="flex items-center gap-4 p-4 pr-6 rounded-2xl border border-border bg-muted/40 w-full">
+                <Creature name={currentUser.name} color={currentUser.color} size={120} pose="wave" />
+                <div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground">You are</div>
+                  <div className="text-2xl font-bold">{currentUser.name}</div>
+                  <div className="text-xs text-muted-foreground mt-1">Nobody knows it is you until you both agree.</div>
+                </div>
               </div>
             )}
+
+            <div className="p-3 bg-white rounded-xl border border-border">
+              <QRCodeSVG value={roomLink} size={150} fgColor="#2F2925" />
+            </div>
 
             <div className="w-full space-y-3">
               <div className="flex gap-2">
@@ -150,6 +153,14 @@ export function WaitingLobbyView({
               </div>
               <p className="text-xs text-center text-muted-foreground">
                 Share the link to invite players
+                {isHost && (
+                  <>
+                    {" · "}
+                    <a href={`${roomLink}&screen`} target="_blank" rel="noreferrer" className="underline hover:text-foreground">
+                      Open projector screen
+                    </a>
+                  </>
+                )}
               </p>
             </div>
           </div>

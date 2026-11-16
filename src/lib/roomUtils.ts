@@ -35,5 +35,6 @@ export function setRoomIdInUrl(roomId: string): void {
 export function getRoomLink(roomId: string): string {
   const url = new URL(window.location.href);
   url.searchParams.set("room", roomId);
+  url.searchParams.delete("screen");
   return url.toString();
 }

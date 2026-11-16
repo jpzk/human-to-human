@@ -70,7 +70,7 @@ export function ChatModal({
 
   return (
     <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="flex flex-col w-[90%] max-w-2xl h-[80vh] max-h-[600px] bg-background border border-border rounded-lg shadow-xl">
+      <div className="flex flex-col w-[90%] max-w-2xl h-[80vh] max-h-[600px] bg-background border border-border rounded-lg shadow-xl mobile:w-full mobile:h-[100dvh] mobile:max-h-none mobile:rounded-none mobile:border-0">
         {/* Header */}
         <div className="flex-shrink-0 px-6 py-4 border-b border-border">
           <div className="flex items-center justify-between">
@@ -131,7 +131,7 @@ export function ChatModal({
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type your message... (Enter to send, Shift+Enter for newline)"
+              placeholder="Type your message…"
               className="flex-1 min-h-[60px] max-h-[120px] px-3 py-2 border border-border rounded-md bg-background text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
             />
             <Button

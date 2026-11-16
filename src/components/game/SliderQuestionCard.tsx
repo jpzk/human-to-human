@@ -50,11 +50,11 @@ export function SliderQuestionCard({
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+      exit={{ opacity: 0, transition: { duration: 0.5 } }}
       transition={{ duration: 2, ease: [0.4, 0, 0.2, 1] }}
-      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-8 p-12 w-1/2"
+      className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-8 p-12 w-1/2 mobile:relative mobile:top-0 mobile:left-0 mobile:translate-x-0 mobile:translate-y-0 mobile:w-full mobile:min-h-full mobile:justify-center mobile:gap-6 mobile:px-5 mobile:pt-4 mobile:pb-16"
     >
-      <h2 className="text-4xl font-semibold text-center text-foreground leading-[1.1] w-[66.666667vw]">
+      <h2 className="text-4xl font-semibold text-center text-foreground leading-[1.1] w-[66.666667vw] mobile:text-[22px] mobile:leading-snug mobile:w-full">
         {question.text}
       </h2>
 
@@ -83,7 +83,7 @@ export function SliderQuestionCard({
         <Button
           variant="gameOutline"
           effect="expand"
-          className="h-auto py-4 px-8 text-base"
+          className="player-only h-auto py-4 px-8 text-base"
           style={
             isConfirmed && myColor
               ? {

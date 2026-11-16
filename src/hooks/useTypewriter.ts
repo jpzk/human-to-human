@@ -39,8 +39,11 @@ export function useTypewriter({ text, speed = 40, onComplete }: UseTypewriterOpt
     // Type next character
     const typeNextChar = () => {
       if (currentIndexRef.current < text.length) {
-        setDisplayedText((prev) => prev + text[currentIndexRef.current]);
+        // Slice instead of appending in an updater: the updater runs later
+        // (twice under StrictMode) and would read an already advanced index,
+        // dropping the first letter and appending "undefined" at the end.
         currentIndexRef.current += 1;
+        setDisplayedText(text.slice(0, currentIndexRef.current));
         
         // Schedule next character
         timeoutRef.current = setTimeout(typeNextChar, speed);

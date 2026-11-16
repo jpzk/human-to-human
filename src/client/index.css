@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* phones: the game drops the scaled 1280x720 stage for a native layout */
+@custom-variant mobile (@media (max-width: 760px));
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -117,4 +120,10 @@ body {
   background: hsl(var(--flexoki-bg));
   color: hsl(var(--flexoki-tx));
   overflow: hidden;
+}
+
+@media (max-width: 760px) {
+  :root {
+    --ui-scale: 1;
+  }
 }

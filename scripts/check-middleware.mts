@@ -1,0 +1,20 @@
+// Run: node --experimental-strip-types scripts/check-middleware.mts
+const { default: mw } = await import('../middleware.ts');
+const assert = (c: unknown, m: string) => { if (!c) { console.log('FAIL', m); process.exit(1); } else console.log('ok', m); };
+delete process.env.ACCESS_CODE;
+assert((await mw(new Request('https://x.app/'))).headers.get('x-middleware-next') === '1', 'open without ACCESS_CODE');
+process.env.ACCESS_CODE = 'tilki42';
+const r1 = await mw(new Request('https://x.app/?room=abc'));
+assert(r1.status === 401 && (await r1.text()).includes('value="/?room=abc"'), 'gate keeps room link');
+const bad = new FormData(); bad.set('code', 'nope'); bad.set('back', '/?room=abc');
+assert((await mw(new Request('https://x.app/__access', { method: 'POST', body: bad }))).status === 401, 'wrong code refused');
+const evil = new FormData(); evil.set('code', 'tilki42'); evil.set('back', '//evil.com');
+assert((await mw(new Request('https://x.app/__access', { method: 'POST', body: evil }))).headers.get('location') === '/', 'no open redirect');
+const good = new FormData(); good.set('code', 'tilki42'); good.set('back', '/?room=abc');
+const r2 = await mw(new Request('https://x.app/__access', { method: 'POST', body: good }));
+const cookie = r2.headers.get('set-cookie')!.split(';')[0];
+assert(r2.status === 303 && r2.headers.get('location') === '/?room=abc', 'right code redirects back');
+const r3 = await mw(new Request('https://x.app/?room=abc', { headers: { cookie } }));
+assert(r3.headers.get('x-middleware-next') === '1', 'cookie passes through');
+const r4 = await mw(new Request('https://x.app/', { headers: { cookie: 'hands_access=forged' } }));
+assert(r4.status === 401, 'forged cookie refused');

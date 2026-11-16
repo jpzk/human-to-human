@@ -1,59 +1,86 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { Creature, type CreaturePose } from "@/components/creature/Creature";
 
-const CURSOR_PATH =
-  "M10 11V8.99c0-.88.59-1.64 1.44-1.86h.05A1.99 1.99 0 0 1 14 9.05V12v-2c0-.88.6-1.65 1.46-1.87h.05A1.98 1.98 0 0 1 18 10.06V13v-1.94a2 2 0 0 1 1.51-1.94h0A2 2 0 0 1 22 11.06V14c0 .6-.08 1.27-.21 1.97a7.96 7.96 0 0 1-7.55 6.48 54.98 54.98 0 0 1-4.48 0 7.96 7.96 0 0 1-7.55-6.48C2.08 15.27 2 14.59 2 14v-1.49c0-1.11.9-2.01 2.01-2.01h0a2 2 0 0 1 2.01 2.03l-.01.97v-10c0-1.1.9-2 2-2h0a2 2 0 0 1 2 2V11Z";
+// Arrow tip sits at (4,4): the hotspot the wrappers offset by.
+const POINTER_PATH = "M4 4 L4 19.5 L8.4 15.4 L11.4 21.6 L14.2 20.3 L11.2 14.2 L17.2 13.8 Z";
 
 type CursorProps = {
   name: string;
   color: string;
+  x?: number;
+  y?: number;
   velocity?: number;
   dropEventId?: number;
   isClicking?: boolean;
   isOnCooldown?: boolean;
+  surprised?: boolean;
+  pose?: CreaturePose;
+  showName?: boolean;
+  away?: boolean; // creature is off at the answer reveal
 };
+
+// Derives "moving" and facing from successive positions, touching React state
+// only when one of them flips (positions arrive at up to 30 fps).
+function useMotion(x?: number, y?: number) {
+  const prev = useRef<{ x: number; y: number } | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout>>();
+  const [moving, setMoving] = useState(false);
+  const [facingLeft, setFacingLeft] = useState(false);
+
+  useEffect(() => {
+    if (x == null || y == null) return;
+    const p = prev.current;
+    prev.current = { x, y };
+    if (!p) return;
+    const dx = x - p.x;
+    const dist = Math.hypot(dx, y - p.y);
+    if (dist < 1.5) return;
+    if (Math.abs(dx) > 1.5) setFacingLeft(dx < 0);
+    setMoving(true);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setMoving(false), 180);
+  }, [x, y]);
+
+  useEffect(() => () => clearTimeout(timer.current), []);
+  return { moving, facingLeft };
+}
 
 export function Cursor({
   name,
   color,
+  x,
+  y,
   velocity = 0,
   dropEventId,
   isClicking = false,
   isOnCooldown = false,
+  surprised = false,
+  pose,
+  showName = true,
+  away = false,
 }: CursorProps) {
+  const { moving, facingLeft } = useMotion(x, y);
   return (
     <div
-      className={`cursor ${isOnCooldown ? 'on-cooldown' : ''} ${isClicking ? 'clicking' : ''}`}
-      style={{
-        "--color": color,
-        "--velocity": velocity,
-      } as React.CSSProperties}
+      className={`cursor ${isOnCooldown ? "on-cooldown" : ""} ${isClicking ? "clicking" : ""}`}
+      style={{ "--color": color, "--velocity": velocity } as React.CSSProperties}
     >
-      {dropEventId !== undefined && (
-        <div key={dropEventId} className="cursor-ripple" />
-      )}
-      <svg
-        className="cursor-icon"
-        xmlns="http://www.w3.org/2000/svg"
-        width="32"
-        height="32"
-        viewBox="0 0 24 24"
-      >
-        {/* Background layer - blocks content */}
-        <path
-          fill="hsl(var(--flexoki-bg))"
-          stroke="none"
-          d={CURSOR_PATH}
-        />
-        {/* Foreground layer - colored outline */}
-        <path
-          fill="none"
-          stroke={color}
-          strokeWidth={2}
-          strokeLinejoin="round"
-          d={CURSOR_PATH}
-        />
+      {dropEventId !== undefined && <div key={dropEventId} className="cursor-ripple" />}
+      <svg className="cursor-icon" width="24" height="24" viewBox="0 0 24 24">
+        <path d={POINTER_PATH} fill={color} stroke="#2F2925" strokeWidth="1.6" strokeLinejoin="round" />
       </svg>
-      <span className="cursor-name">{name}</span>
+      <Creature
+        className={`cursor-creature${away ? " cursor-creature-away" : ""}`}
+        name={name}
+        color={color}
+        size={60}
+        moving={moving}
+        facingLeft={facingLeft}
+        clicking={isClicking}
+        surprised={surprised}
+        pose={pose}
+      />
+      <span className={`cursor-name${showName ? "" : " cursor-name-hidden"}`}>{name}</span>
     </div>
   );
 }

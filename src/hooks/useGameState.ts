@@ -15,6 +15,7 @@ import type {
   ChatStartedMessage,
   ChatMessageReceive,
   ChatClosedMessage,
+  AnswerRevealMessage,
 } from "@/types/messages";
 
 type User = { 
@@ -68,6 +69,7 @@ export function useGameState() {
   const [activeChat, setActiveChat] = useState<{ chatId: string; partnerId: string; partnerName: string; partnerColor: string } | null>(null);
   const [chatMessages, setChatMessages] = useState<Array<{ fromId: string; fromName: string; text: string; timestamp: number; isOwn: boolean }>>([]);
   const [hostId, setHostId] = useState<string | null>(null);
+  const [answerReveal, setAnswerReveal] = useState<AnswerRevealMessage | null>(null);
   const myIdRef = useRef<string | null>(null);
   const nudgeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -111,13 +113,20 @@ export function useGameState() {
       return;
     }
 
+    if (msg.type === "ANSWER_REVEAL") {
+      setAnswerReveal(msg as AnswerRevealMessage);
+      return;
+    }
+
     if (msg.type === "PHASE_CHANGE") {
+      setAnswerReveal(null);
       const phaseMsg = msg as PhaseChangeMessage;
       setPhase(phaseMsg.phase as GamePhase);
       return;
     }
 
     if (msg.type === "QUESTION_ADVANCE") {
+      setAnswerReveal(null);
       const advanceMsg = msg as QuestionAdvanceMessage;
       setCurrentQuestionIndex(advanceMsg.questionIndex);
       return;
@@ -353,6 +362,7 @@ export function useGameState() {
     activeChat,
     chatMessages,
     hostId,
+    answerReveal,
     handleMessage,
     addChatMessageLocally,
   };
